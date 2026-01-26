@@ -786,6 +786,11 @@
                 const dist = this.mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
                 if (dist > 10) return;
 
+                // FIX: Update mouse coordinates for the raycaster explicitly on click.
+                // Mobile touches don't always fire mousemove, so this.mouse could be stale.
+                this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
                 this.raycaster.setFromCamera(this.mouse, this.camera);
                 const intersects = this.raycaster.intersectObject(this.markers);
 
