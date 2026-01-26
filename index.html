@@ -714,13 +714,17 @@
                 window.addEventListener('mousemove', (e) => this.onMouseMove(e));
 
                 window.addEventListener('pointerdown', (e) => {
+                    if (!e.isPrimary) return;
                     this.mouseDownPos.set(e.clientX, e.clientY);
+                    this.mouseDownTime = Date.now();
+
                     // Disable auto-rotation forever on interaction & Stop any fly-to
                     this.controls.autoRotate = false;
                     this.targetCameraPos = null;
                 });
 
-                window.addEventListener('click', (e) => this.onClick(e));
+                window.addEventListener('pointerup', (e) => this.onPointerUp(e));
+
                 document.getElementById('close-panel').addEventListener('click', () => {
                     document.getElementById('news-panel').classList.remove('active');
                     this.controls.enableDamping = true;
@@ -741,6 +745,7 @@
                     btn.innerText = country.id.substring(0, 2).toUpperCase();
                     btn.title = country.id;
 
+                    // Use pointerup for buttons too for consistency, or standard click which is fine for UI
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         this.flyToCountry(country);
@@ -793,12 +798,21 @@
                 this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             }
 
-            onClick(event) {
-                const dist = this.mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
-                if (dist > 10) return;
+            onPointerUp(event) {
+                if (!event.isPrimary) return;
 
-                // FIX: Update mouse coordinates for the raycaster explicitly on click.
-                // Mobile touches don't always fire mousemove, so this.mouse could be stale.
+                // Calculate Drag Distance
+                const dist = this.mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
+
+                // Calculate Press Duration (Long press guard)
+                const duration = Date.now() - (this.mouseDownTime || 0);
+
+                // Forgiving thresholds for mobile:
+                // Distance: < 15px (accommodates fat finger slight rolls)
+                // Duration: < 500ms (avoids triggering on slow drags vs taps)
+                if (dist > 15 || duration > 500) return;
+
+                // Update Coordinates from the UP event
                 this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -816,11 +830,16 @@
                 } else {
                     const panel = document.getElementById('news-panel');
                     if (panel.classList.contains('active')) {
-                        panel.classList.remove('active');
-                        this.controls.enableDamping = true;
-                        this.controls.autoRotate = true;
-                        this.selectedCountry = null;
-                        this.targetCameraPos = null;
+                        // Check if we tapped ON the panel (ignore closing if so) - wait, panel has pointer-events:auto so this listener on window might bubble?
+                        // Actually #news-panel stops propagation? No.
+                        // Ideally we check if event.target is inside panel.
+                        if (!event.target.closest('#news-panel')) {
+                            panel.classList.remove('active');
+                            this.controls.enableDamping = true;
+                            this.controls.autoRotate = true;
+                            this.selectedCountry = null;
+                            this.targetCameraPos = null;
+                        }
                     }
                 }
             }
