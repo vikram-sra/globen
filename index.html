@@ -939,6 +939,36 @@
         }
 
         new GlobeApp();
+
+        // --- Auto-Refresh Logic ---
+        (function () {
+            let lastEtag = null;
+
+            async function checkForUpdate() {
+                try {
+                    // Use current URL with timestamp to bust cache
+                    const url = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    const response = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
+                    const etag = response.headers.get('etag');
+
+                    if (etag) {
+                        if (lastEtag && lastEtag !== etag) {
+                            console.log("New version detected (" + etag + "). Refreshing...");
+                            window.location.reload();
+                        }
+                        lastEtag = etag;
+                    }
+                } catch (e) {
+                    console.warn("Update check failed:", e);
+                }
+            }
+
+            // Check every 30 seconds
+            setInterval(checkForUpdate, 30000);
+
+            // Initial check to set baseline
+            checkForUpdate();
+        })();
     </script>
 </body>
 
