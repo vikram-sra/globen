@@ -667,19 +667,30 @@
             }
 
             initMarkers() {
-                const markerGeom = new THREE.CircleGeometry(0.18, 16);
-                const markerMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, side: THREE.DoubleSide });
-                this.markers = new THREE.InstancedMesh(markerGeom, markerMat, COUNTRIES.length);
-                this.markers.rotation.y = -Math.PI / 2;
+                // Visual Layer
+                const visualGeom = new THREE.CircleGeometry(0.12, 16);
+                const visualMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, side: THREE.DoubleSide });
+                this.markerVisuals = new THREE.InstancedMesh(visualGeom, visualMat, COUNTRIES.length);
+                this.markerVisuals.rotation.y = -Math.PI / 2;
+
+                // Hitbox Layer (Invisible but interactive)
+                const hitGeom = new THREE.CircleGeometry(0.25, 16);
+                const hitMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0, side: THREE.DoubleSide });
+                this.markerHitbox = new THREE.InstancedMesh(hitGeom, hitMat, COUNTRIES.length);
+                this.markerHitbox.rotation.y = -Math.PI / 2;
+
                 const dummy = new THREE.Object3D();
                 COUNTRIES.forEach((c, i) => {
                     const pos = latLongToVector3(c.lat, c.lon, MARKER_RADIUS);
                     dummy.position.copy(pos);
                     dummy.lookAt(0, 0, 0);
                     dummy.updateMatrix();
-                    this.markers.setMatrixAt(i, dummy.matrix);
+                    this.markerVisuals.setMatrixAt(i, dummy.matrix);
+                    this.markerHitbox.setMatrixAt(i, dummy.matrix);
                 });
-                this.scene.add(this.markers);
+
+                this.scene.add(this.markerVisuals);
+                this.scene.add(this.markerHitbox);
             }
 
             initControls() {
@@ -792,7 +803,7 @@
                 this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
                 this.raycaster.setFromCamera(this.mouse, this.camera);
-                const intersects = this.raycaster.intersectObject(this.markers);
+                const intersects = this.raycaster.intersectObject(this.markerHitbox);
 
                 if (intersects.length > 0) {
                     const instanceId = intersects[0].instanceId;
