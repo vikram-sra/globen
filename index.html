@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Earth V13 - Live Production</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --panel-bg: rgba(10, 10, 10, 0.9);
+            --accent-color: #00f2ff;
+            --text-color: #f0f0f0;
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow: hidden;
+            display: flex;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            cursor: grab;
+        }
+
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            padding: 2.5rem;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        #time-display {
+            position: absolute;
+            bottom: 2.5rem;
+            right: 2.5rem;
+            font-size: 0.75rem;
+            letter-spacing: 0.15rem;
+            opacity: 0.5;
+            text-transform: uppercase;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #news-panel {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 180px;
+            max-height: 300px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            padding: 0.8rem;
+            border-radius: 6px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 20;
+            will-change: transform;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) transparent;
+        }
+
+        #news-panel::-webkit-scrollbar {
+            width: 2px;
+        }
+
+        #news-panel::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+        }
+
+        /* Connecting line to marker */
+        #news-panel::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: -30px;
+            width: 30px;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(0, 242, 255, 0.5));
+            pointer-events: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        #news-panel.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .close-btn {
+            position: sticky;
+            top: 0;
+            float: right;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 0.8rem;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            z-index: 10;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+        }
+
+        #news-panel h2 {
+            margin: 0 0 0.6rem 0;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            letter-spacing: 0.08rem;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            background: var(--panel-bg);
+            padding-bottom: 0.4rem;
+            z-index: 5;
+        }
+
+        .news-item {
+            display: block;
+            text-decoration: none;
+            margin-bottom: 0.7rem;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.5rem;
+            padding-left: 0.3rem;
+            border-left: 1px solid transparent;
+        }
+
+        .news-item:hover {
+            background: rgba(0, 242, 255, 0.05);
+            border-left: 1px solid var(--accent-color);
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        .news-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .news-item .title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-top: 0.2rem;
+            line-height: 1.35;
+            color: #ffffff;
+            transition: color 0.2s;
+            letter-spacing: 0.02rem;
+        }
+
+        .news-item:hover .title {
+            color: var(--accent-color);
+        }
+
+        .news-item .meta {
+            font-size: 0.55rem;
+            color: var(--accent-color);
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            text-transform: uppercase;
+        }
+
+        .news-item .source {
+            color: #ddd;
+            font-weight: 500;
+        }
+
+        .news-item .tag {
+            font-weight: 900;
+            color: var(--accent-color);
+        }
+
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.8s ease;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            border-top: 1px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+            margin-bottom: 1.5rem;
+        }
+
+        #loader p {
+            font-size: 0.8rem;
+            letter-spacing: 0.2rem;
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+</head>
+
+<body>
+    <div id="loader">
+        <div class="spinner"></div>
+        <p>Synchronizing Astronomical State...</p>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-overlay">
+        <div id="time-display"></div>
+
+        <div id="news-panel">
+            <button class="close-btn" id="close-panel">&times;</button>
+            <div id="news-content"></div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const GLOBE_RADIUS = 5;
+        const BORDER_RADIUS = 5.01;
+        const CLOUD_RADIUS = 5.05;
+        const MARKER_RADIUS = 5.1;
+        const CAMERA_DISTANCE = 15;
+
+        // Stable, CORS-friendly mirror textures
+        const TEXTURES = {
+            day: 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+            night: 'https://unpkg.com/three-globe/example/img/earth-night.jpg',
+            clouds: 'https://unpkg.com/three-globe/example/img/earth-clouds.png',
+            specular: 'https://unpkg.com/three-globe/example/img/earth-topology.png'
+        };
+
+        const BORDERS_URL = 'https://unpkg.com/world-atlas@2.0.2/countries-110m.json';
+
+        // --- Shader Source ---
+        const globeVertexShader = `
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying vec2 vUv;
+            varying vec3 vViewDir;
+
+            void main() {
+                vUv = uv;
+                vNormal = normalize( (modelMatrix * vec4(normal, 0.0)).xyz );
+                vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+                vViewDir = normalize(cameraPosition - vPosition);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const globeFragmentShader = `
+            uniform sampler2D uDayTexture;
+            uniform sampler2D uNightTexture;
+            uniform sampler2D uSpecularTexture;
+            uniform vec3 uSunDirection;
+            uniform bool uHasDay;
+            uniform bool uHasNight;
+            uniform bool uHasSpecular;
+            
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying vec2 vUv;
+            varying vec3 vViewDir;
+
+            void main() {
+                // Terminator softening
+                float dotSun = dot(vNormal, uSunDirection);
+                float dayWeight = smoothstep(-0.15, 0.15, dotSun);
+                
+                // Colors
+                vec3 dayColor = uHasDay ? texture2D(uDayTexture, vUv).rgb : vec3(0.1, 0.3, 0.6);
+                vec3 nightColor = uHasNight ? texture2D(uNightTexture, vUv).rgb : vec3(0.01, 0.01, 0.02);
+                
+                // Night side: Deep desaturated blue moonlight simulation
+                vec3 moonlitNight = mix(nightColor, vec3(0.02, 0.02, 0.05), 0.3);
+                
+                // Specular reflection (Oceans)
+                float specularStrength = 0.0;
+                if (uHasSpecular) {
+                    vec3 reflection = reflect(-uSunDirection, vNormal);
+                    float spec = pow(max(dot(vViewDir, reflection), 0.0), 32.0);
+                    specularStrength = texture2D(uSpecularTexture, vUv).r * spec * dayWeight;
+                }
+                
+                vec3 baseColor = mix(moonlitNight, dayColor * 1.2, dayWeight);
+                baseColor += specularStrength * vec3(0.8, 0.9, 1.0);
+
+                // Sunset Band (Atmospheric Scattering)
+                float sunsetFactor = clamp(1.0 - abs(dotSun * 10.0), 0.0, 1.0);
+                vec3 sunsetGlow = vec3(1.0, 0.4, 0.1) * sunsetFactor * 0.6;
+                baseColor += sunsetGlow;
+                
+                // Fresnel Glow (Deep Atmospheric Halo)
+                float fresnel = pow(1.0 - dot(vViewDir, vNormal), 3.5);
+                vec3 atmosphereColor = vec3(0.1, 0.3, 0.8) * fresnel * 0.4;
+                
+                gl_FragColor = vec4(baseColor + atmosphereColor, 1.0);
+            }
+        `;
+
+        // --- Mock Data ---
+        const COUNTRIES = [
+            { id: "United States", lat: 37.0902, lon: -95.7129 },
+            { id: "United Kingdom", lat: 55.3781, lon: -3.4360 },
+            { id: "Canada", lat: 56.1304, lon: -106.3468 },
+            { id: "Japan", lat: 36.2048, lon: 138.2529 },
+            { id: "Brazil", lat: -14.2350, lon: -51.9253 },
+            { id: "Australia", lat: -25.2744, lon: 133.7751 },
+            { id: "Germany", lat: 51.1657, lon: 10.4515 },
+            { id: "India", lat: 20.5937, lon: 78.9629 },
+            { id: "South Africa", lat: -30.5595, lon: 22.9375 }
+        ];
+
+        const RSS_FEEDS = {
+            "Canada": 'https://www.cbc.ca/cmlink/rss-topstories',
+            "United States": 'http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml',
+            "United Kingdom": 'http://feeds.bbci.co.uk/news/uk/rss.xml',
+            "Global": 'http://feeds.bbci.co.uk/news/world/rss.xml'
+        };
+
+        // --- Helper ---
+        function latLongToVector3(lat, lon, radius) {
+            const phi = (90 - lat) * (Math.PI / 180);
+            const theta = (lon + 180) * (Math.PI / 180);
+            const x = -(radius * Math.sin(phi) * Math.cos(theta));
+            const y = radius * Math.cos(phi);
+            const z = radius * Math.sin(phi) * Math.sin(theta);
+            return new THREE.Vector3(x, y, z);
+        }
+
+        // --- App Class ---
+        // --- Helper: RSS Fetcher with Fallback ---
+        // --- Helper: RSS Fetcher with Fallback & Timeout ---
+        async function fetchNews(rssUrl) {
+            const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
+            const fallbackData = [
+                { title: 'System Status: Satellite Link Stable', link: '#', time: 'NOW', source: 'SYS', tag: 'STAT' },
+                { title: 'Global Monitoring Active', link: '#', time: 'NOW', source: 'SYS', tag: 'STAT' },
+                { title: 'Data Feed Reconnecting...', link: '#', time: 'NOW', source: 'SYS', tag: 'WARN' }
+            ];
+
+            const fetchPromise = fetch(apiUrl)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        return data.items.map(item => ({
+                            title: item.title,
+                            link: item.link,
+                            time: new Date(item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            source: data.feed.title.split(' ')[0],
+                            tag: 'LIVE'
+                        }));
+                    }
+                    throw new Error('API Error');
+                });
+
+            // Race: API vs 2s Timeout
+            const timeoutPromise = new Promise(resolve => setTimeout(() => {
+                console.warn("RSS Timeout - using fallback");
+                resolve(fallbackData);
+            }, 2000));
+
+            try {
+                return await Promise.race([fetchPromise, timeoutPromise]);
+            } catch (e) {
+                console.warn("RSS Fetch Failed", e);
+                return fallbackData;
+            }
+        }
+
+        class GlobeApp {
+            constructor() {
+                this.container = document.getElementById('canvas-container');
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                this.mouseDownPos = new THREE.Vector2();
+                this.selectedCountry = null;
+                this.selectedPosition = new THREE.Vector3();
+                this.sunMesh = null;
+                this.moonMesh = null;
+                this.initScene();
+                this.initCelestialBodies();
+                this.initStarfield();
+
+                // Texture Promise Manager with 3s Timeout
+                Promise.race([
+                    this.loadResources(),
+                    new Promise((resolve) => setTimeout(() => {
+                        console.warn('Texture timeout! Falling back.');
+                        resolve();
+                    }, 3000))
+                ]).then(() => {
+                    this.initGlobe();
+                    this.initBorders();
+                    this.initClouds();
+                    this.initMarkers();
+                    this.initControls();
+                    this.animate();
+                    this.hideLoader();
+                });
+            }
+
+            initScene() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
+                this.camera.position.z = 15;
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.container.appendChild(this.renderer.domElement);
+
+                // NO EXTERNAL LIGHTS. Lit only by shader logic.
+                this.sunDirection = new THREE.Vector3();
+            }
+
+            initStarfield() {
+                const geometry = new THREE.BufferGeometry();
+                const vertices = [];
+                for (let i = 0; i < 5000; i++) {
+                    const x = THREE.MathUtils.randFloatSpread(1500);
+                    const y = THREE.MathUtils.randFloatSpread(1500);
+                    const z = THREE.MathUtils.randFloatSpread(1500);
+                    vertices.push(x, y, z);
+                }
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                const material = new THREE.PointsMaterial({ color: 0x888888, size: 0.7 });
+                this.starfield = new THREE.Points(geometry, material);
+                this.scene.add(this.starfield);
+            }
+
+            async loadResources() {
+                const loader = new THREE.TextureLoader();
+                loader.setCrossOrigin('anonymous');
+
+                const load = (url) => new Promise((resolve) => {
+                    loader.load(url, resolve, undefined, () => resolve(null));
+                });
+
+                this.assets = {
+                    day: await load(TEXTURES.day),
+                    night: await load(TEXTURES.night),
+                    clouds: await load(TEXTURES.clouds),
+                    specular: await load(TEXTURES.specular),
+                    topo: await fetch(BORDERS_URL).then(r => r.json()).catch(() => null)
+                };
+            }
+
+            initGlobe() {
+                const geometry = new THREE.SphereGeometry(GLOBE_RADIUS, 128, 128);
+                this.globeMaterial = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uDayTexture: { value: this.assets?.day || new THREE.Texture() },
+                        uNightTexture: { value: this.assets?.night || new THREE.Texture() },
+                        uSpecularTexture: { value: this.assets?.specular || new THREE.Texture() },
+                        uSunDirection: { value: this.sunDirection },
+                        uHasDay: { value: !!this.assets?.day },
+                        uHasNight: { value: !!this.assets?.night },
+                        uHasSpecular: { value: !!this.assets?.specular }
+                    },
+                    vertexShader: globeVertexShader,
+                    fragmentShader: globeFragmentShader
+                });
+
+                this.globe = new THREE.Mesh(geometry, this.globeMaterial);
+                this.globe.rotation.y = -Math.PI / 2; // Offset for Greenwich
+                this.scene.add(this.globe);
+            }
+
+            initBorders() {
+                if (!this.assets?.topo) return;
+                const countries = topojson.feature(this.assets.topo, this.assets.topo.objects.countries);
+                const vertices = [];
+                countries.features.forEach(feature => {
+                    const coords = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
+                    coords.forEach(polygon => {
+                        polygon.forEach(ring => {
+                            for (let i = 0; i < ring.length - 1; i++) {
+                                const p1 = latLongToVector3(ring[i][1], ring[i][0], BORDER_RADIUS);
+                                const p2 = latLongToVector3(ring[i + 1][1], ring[i + 1][0], BORDER_RADIUS);
+                                vertices.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+                            }
+                        });
+                    });
+                });
+                const geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                const material = new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.2 });
+                this.borderLayer = new THREE.LineSegments(geometry, material);
+                this.borderLayer.rotation.y = -Math.PI / 2; // Offset for Greenwich
+                this.scene.add(this.borderLayer);
+            }
+
+            initClouds() {
+                if (!this.assets?.clouds) return;
+                const geometry = new THREE.SphereGeometry(CLOUD_RADIUS, 64, 64);
+                const material = new THREE.MeshPhongMaterial({
+                    map: this.assets.clouds,
+                    transparent: true,
+                    opacity: 0.3,
+                    blending: THREE.AdditiveBlending
+                });
+                this.cloudMesh = new THREE.Mesh(geometry, material);
+                this.cloudMesh.rotation.y = -Math.PI / 2; // Offset for Greenwich
+                this.scene.add(this.cloudMesh);
+            }
+
+            initMarkers() {
+                const markerGeom = new THREE.CircleGeometry(0.1, 16);
+                const markerMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, side: THREE.DoubleSide });
+                this.markers = new THREE.InstancedMesh(markerGeom, markerMat, COUNTRIES.length);
+                this.markers.rotation.y = -Math.PI / 2; // Offset for Greenwich
+                const dummy = new THREE.Object3D();
+                COUNTRIES.forEach((c, i) => {
+                    const pos = latLongToVector3(c.lat, c.lon, MARKER_RADIUS);
+                    dummy.position.copy(pos);
+                    dummy.lookAt(0, 0, 0);
+                    dummy.updateMatrix();
+                    this.markers.setMatrixAt(i, dummy.matrix);
+                });
+                this.scene.add(this.markers);
+            }
+
+            initControls() {
+                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.autoRotate = true;
+                this.controls.autoRotateSpeed = 0.5;
+                this.controls.enablePan = false; // Keep target at 0,0,0
+
+                // V15: Critical Startup Fix - Focus on North America
+                // Lat 40, Lon -100
+                const startPos = latLongToVector3(40, -100, CAMERA_DISTANCE);
+                startPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+                this.camera.position.copy(startPos);
+                this.controls.target.set(0, 0, 0);
+                this.controls.update();
+
+                window.addEventListener('resize', () => this.onWindowResize());
+                window.addEventListener('mousemove', (e) => this.onMouseMove(e));
+
+                // Mouse down listener for Drag Guard
+                window.addEventListener('pointerdown', (e) => {
+                    this.mouseDownPos.set(e.clientX, e.clientY);
+                });
+
+                window.addEventListener('click', (e) => this.onClick(e));
+                document.getElementById('close-panel').addEventListener('click', () => {
+                    document.getElementById('news-panel').classList.remove('active');
+                    this.controls.autoRotate = true;
+                });
+
+                this.clock = new THREE.Clock();
+
+                // Auto-Localization
+                this.initGeolocation();
+            }
+
+            initGeolocation() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude } = position.coords;
+                            console.log(`Located User: ${latitude}, ${longitude}`);
+
+                            // Convert to 3D and Apply Greenwich Offset (-90 deg Y)
+                            const pos = latLongToVector3(latitude, longitude, CAMERA_DISTANCE);
+                            pos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+
+                            // Fly to user
+                            this.targetCameraPos = pos;
+                        },
+                        (err) => console.warn('Geolocation failed/denied:', err)
+                    );
+                }
+            }
+
+            initCelestialBodies() {
+                // Sun Visual
+                const sunGeom = new THREE.SphereGeometry(0.5, 32, 32);
+                const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFFF00 });
+                this.sunMesh = new THREE.Mesh(sunGeom, sunMat);
+                this.scene.add(this.sunMesh);
+
+                // Moon Visual (V15: Phong + Emissive)
+                const moonGeom = new THREE.SphereGeometry(0.2, 16, 16);
+                const moonMat = new THREE.MeshPhongMaterial({
+                    color: 0x888888,
+                    emissive: 0x222222,
+                    shininess: 5
+                });
+                this.moonMesh = new THREE.Mesh(moonGeom, moonMat);
+                this.scene.add(this.moonMesh);
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            onMouseMove(event) {
+                this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            }
+
+            onClick(event) {
+                // Drag Guard: If mouse moved more than 2px, treat as drag and return
+                const dist = this.mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
+                if (dist > 2) return;
+
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                const intersects = this.raycaster.intersectObject(this.markers);
+
+                if (intersects.length > 0) {
+                    const instanceId = intersects[0].instanceId;
+                    const country = COUNTRIES[instanceId];
+                    this.showNews(country);
+
+                    // Fly to target: Animate Camera Position (Maintain Distance)
+                    const targetVec = latLongToVector3(country.lat, country.lon, CAMERA_DISTANCE);
+                    targetVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+                    this.targetCameraPos = targetVec;
+                } else {
+                    // Clicked empty space - close panel if active
+                    const panel = document.getElementById('news-panel');
+                    if (panel.classList.contains('active')) {
+                        panel.classList.remove('active');
+                        this.controls.autoRotate = true;
+                        this.selectedCountry = null;
+                        this.targetCameraPos = null;
+                    }
+                }
+            }
+
+            async showNews(country) {
+                this.selectedCountry = country;
+                this.selectedPosition.copy(latLongToVector3(country.lat, country.lon, MARKER_RADIUS));
+
+                const panel = document.getElementById('news-panel');
+                const content = document.getElementById('news-content');
+
+                panel.classList.add('active');
+                this.controls.autoRotate = false;
+
+                content.innerHTML = `
+                    <h2>${country.id} HUD</h2>
+                    <div id="news-list"></div>
+                `;
+
+                // Determine Feed URL
+                const feedUrl = RSS_FEEDS[country.id] || RSS_FEEDS["Global"];
+
+                // Use robust fetcher
+                fetchNews(feedUrl).then(items => {
+                    content.innerHTML = `
+                        <h2>${country.id} LIVE FEED</h2>
+                        <div id="news-list"></div>
+                    `;
+                    const newsList = document.getElementById('news-list');
+
+                    items.forEach((item, i) => {
+                        const el = document.createElement('a');
+                        el.href = item.link;
+                        el.target = "_blank";
+                        el.rel = "noopener noreferrer";
+                        el.className = 'news-item';
+                        el.innerHTML = `
+                            <div class="meta">
+                                <span class="tag">[${item.tag}]</span> 
+                                <span class="source">${item.source}</span> • 
+                                <span class="time">${item.time}</span>
+                            </div>
+                            <div class="title">${item.title}</div>
+                        `;
+                        newsList.appendChild(el);
+                        setTimeout(() => el.classList.add('visible'), 50 + (i * 100));
+                    });
+                });
+            }
+
+            hideLoader() {
+                const loader = document.getElementById('loader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 800);
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                const delta = this.clock.getDelta();
+                const now = new Date();
+                const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
+
+                // Day of year for declination calculation
+                const start = new Date(now.getUTCFullYear(), 0, 0);
+                const diff = now - start;
+                const oneDay = 1000 * 60 * 60 * 24;
+                const dayOfYear = Math.floor(diff / oneDay);
+                const time = Date.now() * 0.0005;
+
+                // Real-time Astronomy: Sun Position
+                // Correct Westward rotation formula for V6: 12:00 UTC = 0.0 LON
+                const sunLon = -((utcHours - 12.0) / 24.0) * (Math.PI * 2.0);
+                const lha = sunLon;
+
+                // Sun Declination: aproximation: 23.44 * sin(360/365 * (day - 81))
+                const axialTilt = 23.44 * (Math.PI / 180);
+                const declination = axialTilt * Math.sin((dayOfYear - 81) * (2.0 * Math.PI / 365.25));
+
+                // Spherical to Cartesian (Sun Direction)
+                // We use theta for longitude-like and declination for latitude-like
+                this.sunDirection.set(
+                    Math.cos(declination) * Math.sin(lha),
+                    Math.sin(declination),
+                    Math.cos(declination) * Math.cos(lha)
+                ).normalize();
+
+                if (this.globeMaterial) {
+                    this.globeMaterial.uniforms.uSunDirection.value.copy(this.sunDirection);
+                }
+
+                // Update Celestial Visuals
+                if (this.sunMesh) {
+                    this.sunMesh.position.copy(this.sunDirection).multiplyScalar(100);
+                }
+
+                if (this.moonMesh) {
+                    // Simple orbital mechanics for visual flair
+                    this.moonMesh.position.set(
+                        Math.cos(time) * 30,
+                        Math.sin(time * 0.5) * 10,
+                        Math.sin(time) * 30
+                    );
+                }
+
+                if (this.cloudMesh) {
+                    this.cloudMesh.rotation.y += delta * 0.05 + 0.00005; // Base rotation + delta jump
+                }
+
+                if (this.starfield) {
+                    this.starfield.rotation.y -= delta * 0.01;
+                }
+
+                // Update UI Display
+                const timeDisplay = document.getElementById('time-display');
+                if (timeDisplay) timeDisplay.textContent = now.toUTCString();
+
+                this.controls.update();
+
+                // Fly-To Logic: Move Camera Position, Keep Target at 0,0,0
+                if (this.targetCameraPos) {
+                    this.camera.position.lerp(this.targetCameraPos, 0.05);
+                    // Stop lerping if close enough to save perf
+                    if (this.camera.position.distanceTo(this.targetCameraPos) < 0.1) {
+                        this.targetCameraPos = null;
+                    }
+                }
+
+                // Update Floating HUD
+                const panel = document.getElementById('news-panel');
+                if (this.selectedCountry && panel.classList.contains('active')) {
+                    const pos = this.selectedPosition.clone();
+
+                    // Apply the Greenwich offset to the tracking position too!
+                    pos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+
+                    const camDir = new THREE.Vector3();
+                    this.camera.getWorldDirection(camDir);
+
+                    const worldPos = pos.clone();
+                    // Occlusion check: vector from globe center to point vs camera direction
+                    // Actually, more simply: is the point normal facing the camera?
+                    const normal = pos.clone().normalize();
+                    const cameraToPoint = pos.clone().sub(this.camera.position).normalize();
+                    const dot = normal.dot(cameraToPoint);
+
+                    if (dot < 0) {
+                        panel.style.display = 'block';
+                        pos.project(this.camera);
+                        const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                        const y = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
+                        // Offset panel to the right of the marker
+                        panel.style.transform = `translate(${x + 20}px, ${y - 40}px)`;
+                    } else {
+                        panel.style.display = 'none';
+                    }
+                } else {
+                    panel.style.display = 'none';
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        new GlobeApp();
+    </script>
+</body>
+
+</html>
