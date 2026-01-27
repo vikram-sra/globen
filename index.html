@@ -6,304 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GlobeN - Live Earth Intelligence</title>
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <style>
-        :root {
-            --bg-color: #000000;
-            --panel-bg: rgba(10, 10, 10, 0.9);
-            --accent-color: #00f2ff;
-            --text-color: #f0f0f0;
-            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-
-        body {
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: var(--font-main);
-            overflow: hidden;
-            display: flex;
-            height: 100vh;
-        }
-
-        #canvas-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            cursor: grab;
-            touch-action: none;
-        }
-
-        #canvas-container:active {
-            cursor: grabbing;
-        }
-
-        #ui-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            padding: 2.5rem;
-            box-sizing: border-box;
-            z-index: 10;
-        }
-
-        #time-display {
-            position: absolute;
-            bottom: 2.5rem;
-            right: 2.5rem;
-            font-size: 0.75rem;
-            letter-spacing: 0.15rem;
-            opacity: 0.5;
-            text-transform: uppercase;
-            z-index: 100;
-            pointer-events: none;
-        }
-
-        #country-dock {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
-            z-index: 50;
-            max-height: 80vh;
-            overflow-y: auto;
-            scrollbar-width: none;
-            pointer-events: auto;
-            /* Allow clicking buttons */
-        }
-
-        .country-btn {
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            color: #00f2ff;
-            font-weight: 800;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-            transition: all 0.3s;
-            cursor: pointer;
-            text-transform: uppercase;
-            user-select: none;
-        }
-
-        .country-btn:hover {
-            background: rgba(0, 242, 255, 0.2);
-            transform: scale(1.1);
-            border-color: #00f2ff;
-            box-shadow: 0 0 10px rgba(0, 242, 255, 0.4);
-        }
-
-        #news-panel {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 180px;
-            max-height: 300px;
-            background: var(--panel-bg);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(0, 242, 255, 0.3);
-            padding: 0.8rem;
-            border-radius: 6px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 20;
-            will-change: transform;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent-color) transparent;
-        }
-
-        #news-panel::-webkit-scrollbar {
-            width: 2px;
-        }
-
-        #news-panel::-webkit-scrollbar-thumb {
-            background: var(--accent-color);
-            border-radius: 10px;
-        }
-
-        /* Connecting line to marker */
-        #news-panel::before {
-            content: '';
-            position: absolute;
-            top: 20px;
-            left: -30px;
-            width: 30px;
-            height: 1px;
-            background: linear-gradient(to right, transparent, rgba(0, 242, 255, 0.5));
-            pointer-events: none;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 0.3;
-            }
-
-            50% {
-                opacity: 1;
-            }
-
-            100% {
-                opacity: 0.3;
-            }
-        }
-
-        #news-panel.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .close-btn {
-            position: sticky;
-            top: 0;
-            float: right;
-            background: rgba(0, 0, 0, 0.5);
-            border: none;
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 0.8rem;
-            opacity: 0.6;
-            transition: opacity 0.2s;
-            z-index: 10;
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
-
-        .close-btn:hover {
-            opacity: 1;
-        }
-
-        #news-panel h2 {
-            margin: 0 0 0.6rem 0;
-            font-size: 0.65rem;
-            font-weight: 800;
-            color: var(--accent-color);
-            letter-spacing: 0.08rem;
-            text-transform: uppercase;
-            position: sticky;
-            top: 0;
-            background: var(--panel-bg);
-            padding-bottom: 0.4rem;
-            z-index: 5;
-        }
-
-        .news-item {
-            display: block;
-            text-decoration: none;
-            margin-bottom: 0.7rem;
-            opacity: 0;
-            transform: translateY(5px);
-            transition: all 0.2s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            padding-bottom: 0.5rem;
-            padding-left: 0.3rem;
-            border-left: 1px solid transparent;
-        }
-
-        .news-item:hover {
-            background: rgba(0, 242, 255, 0.05);
-            border-left: 1px solid var(--accent-color);
-        }
-
-        .news-item:last-child {
-            border-bottom: none;
-        }
-
-        .news-item.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .news-item .title {
-            font-size: 0.65rem;
-            font-weight: 600;
-            margin-top: 0.2rem;
-            line-height: 1.35;
-            color: #ffffff;
-            transition: color 0.2s;
-            letter-spacing: 0.02rem;
-        }
-
-        .news-item:hover .title {
-            color: var(--accent-color);
-        }
-
-        .news-item .meta {
-            font-size: 0.55rem;
-            color: var(--accent-color);
-            opacity: 0.7;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            text-transform: uppercase;
-        }
-
-        .news-item .source {
-            color: #ddd;
-            font-weight: 500;
-        }
-
-        .news-item .tag {
-            font-weight: 900;
-            color: var(--accent-color);
-        }
-
-        #loader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            transition: opacity 0.8s ease;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 1px solid rgba(0, 242, 255, 0.1);
-            border-top: 1px solid var(--accent-color);
-            border-radius: 50%;
-            animation: spin 1.2s linear infinite;
-            margin-bottom: 1.5rem;
-        }
-
-        #loader p {
-            font-size: 0.8rem;
-            letter-spacing: 0.2rem;
-            text-transform: uppercase;
-            opacity: 0.6;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/topojson-client@3"></script>
 </head>
 
@@ -518,6 +221,14 @@
                 this.moonMesh = null;
                 this.assets = {}; // Initialize empty
 
+                // Camera transition state
+                this.isFlying = false;
+                this.flyStartTime = performance.now();
+                this.flyDuration = 2000;
+                this.startSpherical = new THREE.Spherical();
+                this.targetSpherical = new THREE.Spherical();
+                this.currentSpherical = new THREE.Spherical();
+
                 // 1. Instant Start: Init scene immediately
                 this.initScene();
                 this.initCelestialBodies();
@@ -525,14 +236,14 @@
 
                 // Initialize Globe with placeholders immediately
                 this.initGlobe();
-                this.initMarkers(); // Will work but markers might be on a placeholder globe
+                this.initMarkers();
 
                 // 2. Load Resources in Background
                 this.loadResources().then(() => {
                     // Update materials when textures arrive
                     this.updateGlobeMaterials();
-                    this.initBorders(); // Borders need topo data
-                    this.initClouds();  // Clouds need texture
+                    this.initBorders();
+                    this.initClouds();
                 });
 
                 // 3. Init Controls immediately so user can spin
@@ -667,13 +378,11 @@
             }
 
             initMarkers() {
-                // Visual Layer
                 const visualGeom = new THREE.CircleGeometry(0.12, 16);
                 const visualMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, side: THREE.DoubleSide });
                 this.markerVisuals = new THREE.InstancedMesh(visualGeom, visualMat, COUNTRIES.length);
                 this.markerVisuals.rotation.y = -Math.PI / 2;
 
-                // Hitbox Layer (Invisible but interactive)
                 const hitGeom = new THREE.CircleGeometry(0.25, 16);
                 const hitMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0, side: THREE.DoubleSide });
                 this.markerHitbox = new THREE.InstancedMesh(hitGeom, hitMat, COUNTRIES.length);
@@ -699,11 +408,9 @@
                 this.controls.dampingFactor = 0.05;
                 this.controls.rotateSpeed = 0.6;
                 this.controls.enablePan = false;
-
                 this.controls.autoRotate = true;
                 this.controls.autoRotateSpeed = 0.5;
 
-                // Focus NA
                 const startPos = latLongToVector3(40, -100, CAMERA_DISTANCE);
                 startPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
                 this.camera.position.copy(startPos);
@@ -712,17 +419,13 @@
 
                 window.addEventListener('resize', () => this.onWindowResize());
                 window.addEventListener('mousemove', (e) => this.onMouseMove(e));
-
                 window.addEventListener('pointerdown', (e) => {
                     if (!e.isPrimary) return;
                     this.mouseDownPos.set(e.clientX, e.clientY);
                     this.mouseDownTime = Date.now();
-
-                    // Disable auto-rotation forever on interaction & Stop any fly-to
                     this.controls.autoRotate = false;
-                    this.targetCameraPos = null;
+                    this.isFlying = false;
                 });
-
                 window.addEventListener('pointerup', (e) => this.onPointerUp(e));
 
                 document.getElementById('close-panel').addEventListener('click', () => {
@@ -737,20 +440,15 @@
             initCountryDock() {
                 const dock = document.getElementById('country-dock');
                 if (!dock) return;
-
                 COUNTRIES.forEach(country => {
                     const btn = document.createElement('div');
                     btn.className = 'country-btn';
-                    // Use shortened ID (first 2 chars)
                     btn.innerText = country.id.substring(0, 2).toUpperCase();
                     btn.title = country.id;
-
-                    // Use pointerup for buttons too for consistency, or standard click which is fine for UI
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         this.flyToCountry(country);
                     });
-
                     dock.appendChild(btn);
                 });
             }
@@ -759,16 +457,22 @@
                 this.selectedCountry = country;
                 this.controls.autoRotate = false;
 
+                // Capture current spherical state
+                this.startSpherical.setFromVector3(this.camera.position);
+
+                // Calculate target position and spherical state
                 const targetVec = latLongToVector3(country.lat, country.lon, CAMERA_DISTANCE);
                 targetVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
-                this.targetCameraPos = targetVec;
-            }
+                this.targetSpherical.setFromVector3(targetVec);
 
-            initGeolocation() {
-                // Removed per instructions/implied cleanup, or re-add if truly needed. 
-                // Instructions said "Single File Ultimate". Did not explicitly command removing Global loc logic, 
-                // but typically "Mobile Physics" and "Country Dock" replace the need for auto-locating.
-                // I will omit it to keep it clean and performant, as it often causes permission popups.
+                // Ensure shortest path for longitude (theta)
+                let dTheta = this.targetSpherical.theta - this.startSpherical.theta;
+                while (dTheta > Math.PI) dTheta -= 2 * Math.PI;
+                while (dTheta < -Math.PI) dTheta += 2 * Math.PI;
+                this.targetSpherical.theta = this.startSpherical.theta + dTheta;
+
+                this.isFlying = true;
+                this.flyStartTime = performance.now();
             }
 
             initCelestialBodies() {
@@ -778,11 +482,7 @@
                 this.scene.add(this.sunMesh);
 
                 const moonGeom = new THREE.SphereGeometry(0.2, 16, 16);
-                const moonMat = new THREE.MeshPhongMaterial({
-                    color: 0x888888,
-                    emissive: 0x222222,
-                    shininess: 5
-                });
+                const moonMat = new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x222222, shininess: 5 });
                 this.moonMesh = new THREE.Mesh(moonGeom, moonMat);
                 this.scene.add(this.moonMesh);
             }
@@ -800,22 +500,12 @@
 
             onPointerUp(event) {
                 if (!event.isPrimary) return;
-
-                // Calculate Drag Distance
                 const dist = this.mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
-
-                // Calculate Press Duration (Long press guard)
                 const duration = Date.now() - (this.mouseDownTime || 0);
-
-                // Forgiving thresholds for mobile:
-                // Distance: < 15px (accommodates fat finger slight rolls)
-                // Duration: < 500ms (avoids triggering on slow drags vs taps)
                 if (dist > 15 || duration > 500) return;
 
-                // Update Coordinates from the UP event
                 this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
                 this.raycaster.setFromCamera(this.mouse, this.camera);
                 const intersects = this.raycaster.intersectObject(this.markerHitbox);
 
@@ -824,22 +514,25 @@
                     const country = COUNTRIES[instanceId];
                     this.showNews(country);
 
+                    this.startSpherical.setFromVector3(this.camera.position);
                     const targetVec = latLongToVector3(country.lat, country.lon, CAMERA_DISTANCE);
                     targetVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
-                    this.targetCameraPos = targetVec;
+                    this.targetSpherical.setFromVector3(targetVec);
+
+                    let dTheta = this.targetSpherical.theta - this.startSpherical.theta;
+                    while (dTheta > Math.PI) dTheta -= 2 * Math.PI;
+                    while (dTheta < -Math.PI) dTheta += 2 * Math.PI;
+                    this.targetSpherical.theta = this.startSpherical.theta + dTheta;
+
+                    this.isFlying = true;
+                    this.flyStartTime = performance.now();
                 } else {
                     const panel = document.getElementById('news-panel');
-                    if (panel.classList.contains('active')) {
-                        // Check if we tapped ON the panel (ignore closing if so) - wait, panel has pointer-events:auto so this listener on window might bubble?
-                        // Actually #news-panel stops propagation? No.
-                        // Ideally we check if event.target is inside panel.
-                        if (!event.target.closest('#news-panel')) {
-                            panel.classList.remove('active');
-                            this.controls.enableDamping = true;
-                            this.controls.autoRotate = true;
-                            this.selectedCountry = null;
-                            this.targetCameraPos = null;
-                        }
+                    if (panel.classList.contains('active') && !event.target.closest('#news-panel')) {
+                        panel.classList.remove('active');
+                        this.controls.enableDamping = true;
+                        this.controls.autoRotate = true;
+                        this.selectedCountry = null;
                     }
                 }
             }
@@ -847,35 +540,23 @@
             async showNews(country) {
                 this.selectedCountry = country;
                 this.selectedPosition.copy(latLongToVector3(country.lat, country.lon, MARKER_RADIUS));
-
                 const panel = document.getElementById('news-panel');
                 const content = document.getElementById('news-content');
-
-                // STABILITY: Stop drifting
                 this.controls.enableDamping = false;
                 this.controls.autoRotate = false;
-
                 panel.classList.add('active');
                 content.innerHTML = `<h2>${country.id} HUD</h2><p>Scanning...</p>`;
-
                 const feedUrl = RSS_FEEDS[country.id] || RSS_FEEDS['Global'];
                 const items = await fetchNews(feedUrl);
-
                 content.innerHTML = `<h2>${country.id} LIVE</h2><div id='news-list'></div>`;
                 const list = document.getElementById('news-list');
-
                 items.forEach((item, i) => {
                     const el = document.createElement('a');
                     el.className = 'news-item';
                     el.href = item.link;
                     el.target = '_blank';
                     el.rel = 'noopener';
-                    el.innerHTML = `
-                        <div class='meta'>
-                            <span class='tag'>[${item.tag}]</span> ${item.source} • ${item.time}
-                        </div>
-                        <div class='title'>${item.title}</div>
-                    `;
+                    el.innerHTML = `<div class='meta'><span class='tag'>[${item.tag}]</span> ${item.source} • ${item.time}</div><div class='title'>${item.title}</div>`;
                     list.appendChild(el);
                     setTimeout(() => el.classList.add('visible'), 50 + i * 50);
                 });
@@ -884,7 +565,6 @@
             hideLoader() {
                 const loader = document.getElementById('loader');
                 if (loader) {
-                    // Instant remove
                     loader.style.display = 'none';
                     loader.remove();
                 }
@@ -892,60 +572,47 @@
 
             animate() {
                 requestAnimationFrame(() => this.animate());
-
                 const delta = this.clock.getDelta();
                 const now = new Date();
                 const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
-
                 const start = new Date(now.getUTCFullYear(), 0, 0);
-                const diff = now - start;
-                const oneDay = 1000 * 60 * 60 * 24;
-                const dayOfYear = Math.floor(diff / oneDay);
+                const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
                 const time = Date.now() * 0.0005;
 
                 const sunLon = -((utcHours - 12.0) / 24.0) * (Math.PI * 2.0);
-                const lha = sunLon;
-
                 const axialTilt = 23.44 * (Math.PI / 180);
                 const declination = axialTilt * Math.sin((dayOfYear - 81) * (2.0 * Math.PI / 365.25));
 
-                this.sunDirection.set(
-                    Math.cos(declination) * Math.sin(lha),
-                    Math.sin(declination),
-                    Math.cos(declination) * Math.cos(lha)
-                ).normalize();
+                this.sunDirection.set(Math.cos(declination) * Math.sin(sunLon), Math.sin(declination), Math.cos(declination) * Math.cos(sunLon)).normalize();
 
-                if (this.globeMaterial) {
-                    this.globeMaterial.uniforms.uSunDirection.value.copy(this.sunDirection);
-                }
-
-                if (this.sunMesh) {
-                    this.sunMesh.position.copy(this.sunDirection).multiplyScalar(100);
-                }
-
-                if (this.moonMesh) {
-                    this.moonMesh.position.set(
-                        Math.cos(time) * 30,
-                        Math.sin(time * 0.5) * 10,
-                        Math.sin(time) * 30
-                    );
-                }
-
-                if (this.cloudMesh) {
-                    this.cloudMesh.rotation.y += delta * 0.05 + 0.00005;
-                }
-
-                if (this.starfield) {
-                    this.starfield.rotation.y -= delta * 0.01;
-                }
+                if (this.globeMaterial) this.globeMaterial.uniforms.uSunDirection.value.copy(this.sunDirection);
+                if (this.sunMesh) this.sunMesh.position.copy(this.sunDirection).multiplyScalar(100);
+                if (this.moonMesh) this.moonMesh.position.set(Math.cos(time) * 30, Math.sin(time * 0.5) * 10, Math.sin(time) * 30);
+                if (this.cloudMesh) this.cloudMesh.rotation.y += delta * 0.05 + 0.00005;
+                if (this.starfield) this.starfield.rotation.y -= delta * 0.01;
 
                 const timeDisplay = document.getElementById('time-display');
                 if (timeDisplay) timeDisplay.textContent = now.toUTCString();
 
                 this.controls.update();
 
-                if (this.targetCameraPos) {
-                    this.camera.position.lerp(this.targetCameraPos, 0.02);
+                if (this.isFlying) {
+                    const elapsed = performance.now() - this.flyStartTime;
+                    const t = Math.min(elapsed / this.flyDuration, 1);
+
+                    // Smooth easing
+                    const easedT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+                    // Interpolate spherical coordinates
+                    this.currentSpherical.phi = THREE.MathUtils.lerp(this.startSpherical.phi, this.targetSpherical.phi, easedT);
+                    this.currentSpherical.theta = THREE.MathUtils.lerp(this.startSpherical.theta, this.targetSpherical.theta, easedT);
+                    this.currentSpherical.radius = THREE.MathUtils.lerp(this.startSpherical.radius, this.targetSpherical.radius, easedT);
+
+                    this.camera.position.setFromSpherical(this.currentSpherical);
+
+                    if (t >= 1) {
+                        this.isFlying = false;
+                    }
                 }
 
                 const panel = document.getElementById('news-panel');
@@ -962,12 +629,8 @@
                         const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
                         const y = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
                         panel.style.transform = `translate(${x + 20}px, ${y - 40}px)`;
-                    } else {
-                        panel.style.display = 'none';
-                    }
-                } else {
-                    panel.style.display = 'none';
-                }
+                    } else { panel.style.display = 'none'; }
+                } else { panel.style.display = 'none'; }
 
                 this.renderer.render(this.scene, this.camera);
             }
@@ -978,30 +641,16 @@
         // --- Auto-Refresh Logic ---
         (function () {
             let lastEtag = null;
-
             async function checkForUpdate() {
                 try {
-                    // Use current URL with timestamp to bust cache
                     const url = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 't=' + Date.now();
                     const response = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
                     const etag = response.headers.get('etag');
-
-                    if (etag) {
-                        if (lastEtag && lastEtag !== etag) {
-                            console.log("New version detected (" + etag + "). Refreshing...");
-                            window.location.reload();
-                        }
-                        lastEtag = etag;
-                    }
-                } catch (e) {
-                    console.warn("Update check failed:", e);
-                }
+                    if (etag && lastEtag && lastEtag !== etag) window.location.reload();
+                    lastEtag = etag;
+                } catch (e) { }
             }
-
-            // Check every 30 seconds
             setInterval(checkForUpdate, 30000);
-
-            // Initial check to set baseline
             checkForUpdate();
         })();
     </script>
