@@ -1,9 +1,10 @@
 :root {
     --bg-color: #000000;
-    --panel-bg: rgba(10, 10, 10, 0.9);
+    --panel-bg: rgba(5, 10, 15, 0.95);
     --accent-color: #00f2ff;
     --text-color: #f0f0f0;
     --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
 }
 
 body {
@@ -12,7 +13,6 @@ body {
     color: var(--text-color);
     font-family: var(--font-main);
     overflow: hidden;
-    display: flex;
     height: 100vh;
 }
 
@@ -38,87 +38,123 @@ body {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    padding: 2.5rem;
-    box-sizing: border-box;
     z-index: 10;
 }
 
 #time-display {
     position: absolute;
-    bottom: 2.5rem;
-    right: 2.5rem;
-    font-size: 0.75rem;
-    letter-spacing: 0.15rem;
-    opacity: 0.5;
+    bottom: 2rem;
+    right: 2rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.2rem;
+    opacity: 0.4;
     text-transform: uppercase;
-    z-index: 100;
-    pointer-events: none;
+    font-family: var(--font-mono);
 }
 
 #country-dock {
     position: absolute;
-    left: 1rem;
+    left: 1.5rem;
     top: 50%;
     transform: translateY(-50%);
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 0.6rem;
     z-index: 50;
-    max-height: 80vh;
+    max-height: 90vh;
+    padding: 10px;
+    pointer-events: auto;
     overflow-y: auto;
     scrollbar-width: none;
-    pointer-events: auto;
-    /* Allow clicking buttons */
+}
+
+#country-dock::-webkit-scrollbar {
+    display: none;
 }
 
 .country-btn {
-    width: 40px;
-    height: 40px;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    color: #00f2ff;
+    width: 54px;
+    height: 48px;
+    background: rgba(10, 20, 30, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: var(--accent-color);
+    font-family: var(--font-mono);
     font-weight: 800;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     display: flex;
     align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(5px);
-    transition: all 0.3s;
+    backdrop-filter: blur(15px);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
     text-transform: uppercase;
     user-select: none;
+    overflow: hidden;
+    position: relative;
+}
+
+.country-btn span:first-child {
+    min-width: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    letter-spacing: 1px;
+}
+
+.country-btn.home-btn {
+    background: rgba(0, 242, 255, 0.12);
+    border-color: rgba(0, 242, 255, 0.3);
+    margin-bottom: 0.6rem;
+    font-size: 1.3rem;
+    height: 54px;
+}
+
+.country-btn .label {
+    opacity: 0;
+    transform: translateX(-15px);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    font-weight: 700;
+    color: #fff;
+    padding-right: 20px;
+    white-space: nowrap;
 }
 
 .country-btn:hover {
-    background: rgba(0, 242, 255, 0.2);
-    transform: scale(1.1);
-    border-color: #00f2ff;
-    box-shadow: 0 0 10px rgba(0, 242, 255, 0.4);
+    width: 180px;
+    background: rgba(0, 242, 255, 0.15);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 25px rgba(0, 242, 255, 0.2);
+}
+
+.country-btn:hover .label {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 #news-panel {
     position: absolute;
-    left: 0;
-    top: 0;
-    width: 180px;
-    max-height: 300px;
+    width: 240px;
+    max-height: 380px;
     background: var(--panel-bg);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(0, 242, 255, 0.3);
-    padding: 0.8rem;
-    border-radius: 6px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    pointer-events: none;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 242, 255, 0.2);
+    padding: 1.2rem;
+    border-radius: 4px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+    pointer-events: auto;
     opacity: 0;
     transition: opacity 0.3s ease;
     z-index: 20;
-    will-change: transform;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--accent-color) transparent;
+}
+
+#news-panel.active {
+    opacity: 1;
 }
 
 #news-panel::-webkit-scrollbar {
@@ -127,95 +163,73 @@ body {
 
 #news-panel::-webkit-scrollbar-thumb {
     background: var(--accent-color);
-    border-radius: 10px;
 }
 
-/* Connecting line to marker */
-#news-panel::before {
-    content: '';
+#svg-tether-container {
     position: absolute;
-    top: 20px;
-    left: -30px;
-    width: 30px;
-    height: 1px;
-    background: linear-gradient(to right, transparent, rgba(0, 242, 255, 0.5));
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
-    animation: pulse 2s infinite;
+    z-index: 5;
 }
 
-@keyframes pulse {
-    0% {
-        opacity: 0.3;
-    }
+#tether-path {
+    fill: none;
+    stroke: var(--accent-color);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    opacity: 0.4;
+}
 
-    50% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0.3;
+@keyframes marching-ants {
+    to {
+        stroke-dashoffset: -20;
     }
 }
 
-#news-panel.active {
-    opacity: 1;
-    pointer-events: auto;
+.ants-animation {
+    animation: marching-ants 1.5s linear infinite;
 }
 
 .close-btn {
     position: sticky;
     top: 0;
     float: right;
-    background: rgba(0, 0, 0, 0.5);
+    background: none;
     border: none;
-    color: var(--text-color);
+    color: #555;
     cursor: pointer;
-    font-size: 0.8rem;
-    opacity: 0.6;
-    transition: opacity 0.2s;
-    z-index: 10;
-    padding: 2px 5px;
-    border-radius: 3px;
+    font-size: 1.2rem;
+    margin: -10px -10px 0 0;
 }
 
 .close-btn:hover {
-    opacity: 1;
+    color: var(--accent-color);
 }
 
 #news-panel h2 {
-    margin: 0 0 0.6rem 0;
-    font-size: 0.65rem;
-    font-weight: 800;
+    margin: 0 0 1rem 0;
+    font-size: 0.75rem;
+    font-weight: 900;
     color: var(--accent-color);
-    letter-spacing: 0.08rem;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    position: sticky;
-    top: 0;
-    background: var(--panel-bg);
-    padding-bottom: 0.4rem;
-    z-index: 5;
+    font-family: var(--font-mono);
+    border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+    padding-bottom: 0.5rem;
 }
 
 .news-item {
     display: block;
     text-decoration: none;
-    margin-bottom: 0.7rem;
+    margin-bottom: 1rem;
     opacity: 0;
-    transform: translateY(5px);
-    transition: all 0.2s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 0.5rem;
-    padding-left: 0.3rem;
-    border-left: 1px solid transparent;
-}
-
-.news-item:hover {
-    background: rgba(0, 242, 255, 0.05);
-    border-left: 1px solid var(--accent-color);
-}
-
-.news-item:last-child {
-    border-bottom: none;
+    transform: translateY(10px);
+    transition: all 0.4s ease;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .news-item.visible {
@@ -224,37 +238,33 @@ body {
 }
 
 .news-item .title {
-    font-size: 0.65rem;
-    font-weight: 600;
-    margin-top: 0.2rem;
-    line-height: 1.35;
-    color: #ffffff;
-    transition: color 0.2s;
-    letter-spacing: 0.02rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #ccc;
+    margin-bottom: 0.4rem;
 }
 
 .news-item:hover .title {
-    color: var(--accent-color);
+    color: #fff;
 }
 
 .news-item .meta {
-    font-size: 0.55rem;
+    font-size: 0.6rem;
     color: var(--accent-color);
-    opacity: 0.7;
+    opacity: 0.6;
+    font-family: var(--font-mono);
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    text-transform: uppercase;
+    gap: 0.6rem;
 }
 
-.news-item .source {
-    color: #ddd;
-    font-weight: 500;
-}
-
-.news-item .tag {
-    font-weight: 900;
-    color: var(--accent-color);
+.weather-tag {
+    background: rgba(0, 242, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 2px;
+    color: #fff;
+    font-weight: 700;
 }
 
 #loader {
@@ -268,25 +278,18 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 100;
-    transition: opacity 0.8s ease;
+    z-index: 1000;
+    transition: opacity 1s ease;
 }
 
 .spinner {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border: 1px solid rgba(0, 242, 255, 0.1);
     border-top: 1px solid var(--accent-color);
     border-radius: 50%;
-    animation: spin 1.2s linear infinite;
-    margin-bottom: 1.5rem;
-}
-
-#loader p {
-    font-size: 0.8rem;
-    letter-spacing: 0.2rem;
-    text-transform: uppercase;
-    opacity: 0.6;
+    animation: spin 1s linear infinite;
+    margin-bottom: 2rem;
 }
 
 @keyframes spin {

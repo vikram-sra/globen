@@ -19,6 +19,10 @@
     <div id="canvas-container"></div>
 
     <div id="ui-overlay">
+        <svg id="svg-tether-container">
+            <path id="tether-path" class="ants-animation"></path>
+        </svg>
+
         <div id="time-display"></div>
         <div id="country-dock"></div>
 
@@ -48,7 +52,6 @@
         const MARKER_RADIUS = 5.1;
         const CAMERA_DISTANCE = 15;
 
-        // Stable, CORS-friendly mirror textures
         const TEXTURES = {
             day: 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
             night: 'https://unpkg.com/three-globe/example/img/earth-night.jpg',
@@ -58,13 +61,12 @@
 
         const BORDERS_URL = 'https://unpkg.com/world-atlas@2.0.2/countries-110m.json';
 
-        // --- Shader Source ---
+        // --- Shaders ---
         const globeVertexShader = `
             varying vec3 vNormal;
             varying vec3 vPosition;
             varying vec2 vUv;
             varying vec3 vViewDir;
-
             void main() {
                 vUv = uv;
                 vNormal = normalize( (modelMatrix * vec4(normal, 0.0)).xyz );
@@ -82,66 +84,101 @@
             uniform bool uHasDay;
             uniform bool uHasNight;
             uniform bool uHasSpecular;
-            
             varying vec3 vNormal;
             varying vec3 vPosition;
             varying vec2 vUv;
             varying vec3 vViewDir;
-
             void main() {
-                // Terminator softening
                 float dotSun = dot(vNormal, uSunDirection);
                 float dayWeight = smoothstep(-0.15, 0.15, dotSun);
-                
-                // Colors
                 vec3 dayColor = uHasDay ? texture2D(uDayTexture, vUv).rgb : vec3(0.1, 0.3, 0.6);
                 vec3 nightColor = uHasNight ? texture2D(uNightTexture, vUv).rgb : vec3(0.01, 0.01, 0.02);
-                
-                // Night side: Deep desaturated blue moonlight simulation
                 vec3 moonlitNight = mix(nightColor, vec3(0.02, 0.02, 0.05), 0.3);
-                
-                // Specular reflection (Oceans)
                 float specularStrength = 0.0;
                 if (uHasSpecular) {
                     vec3 reflection = reflect(-uSunDirection, vNormal);
                     float spec = pow(max(dot(vViewDir, reflection), 0.0), 32.0);
                     specularStrength = texture2D(uSpecularTexture, vUv).r * spec * dayWeight;
                 }
-                
                 vec3 baseColor = mix(moonlitNight, dayColor * 1.2, dayWeight);
                 baseColor += specularStrength * vec3(0.8, 0.9, 1.0);
-
-                // Sunset Band (Atmospheric Scattering)
                 float sunsetFactor = clamp(1.0 - abs(dotSun * 10.0), 0.0, 1.0);
                 vec3 sunsetGlow = vec3(1.0, 0.4, 0.1) * sunsetFactor * 0.6;
                 baseColor += sunsetGlow;
-                
-                // Fresnel Glow (Deep Atmospheric Halo)
                 float fresnel = pow(1.0 - dot(vViewDir, vNormal), 3.5);
                 vec3 atmosphereColor = vec3(0.1, 0.3, 0.8) * fresnel * 0.4;
-                
                 gl_FragColor = vec4(baseColor + atmosphereColor, 1.0);
             }
         `;
 
+        const cloudVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            void main() {
+                vUv = uv;
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const cloudFragmentShader = `
+            uniform sampler2D uCloudTexture;
+            uniform float uCloudDensity;
+            uniform float uTime;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+
+            // Simplified procedural noise for storm patterns
+            float hash(vec2 p) {
+                return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+            }
+
+            float noise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                return mix(mix(hash(i + vec2(0,0)), hash(i + vec2(1,0)), f.x),
+                           mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
+            }
+
+            void main() {
+                // Simplified procedural noise for storm patterns
+                float n = noise(vUv * 15.0 + uTime * 0.04);
+                n += noise(vUv * 30.0 - uTime * 0.08) * 0.5;
+                
+                vec4 cloudTex = texture2D(uCloudTexture, vUv);
+                
+                // Form organic storm patterns
+                float stormValue = mix(cloudTex.r, n, 0.45);
+                
+                // GUARANTEED VISIBILITY: Smooth threshold based on density
+                // Even at 0% density, we keep a subtle haze
+                float threshold = 0.85 - (uCloudDensity * 0.5);
+                float alpha = smoothstep(threshold, threshold + 0.15, stormValue);
+                
+                // Swirl intensity and contrast
+                vec3 finalColor = vec3(1.0, 1.0, 1.1) * (0.9 + n * 0.1);
+                gl_FragColor = vec4(finalColor, alpha * 0.82);
+            }
+        `;
+
         // --- Data ---
-        // Expanded list per instructions
         const COUNTRIES = [
-            { id: "Australia", lat: -25.2744, lon: 133.7751 },
-            { id: "Brazil", lat: -14.2350, lon: -51.9253 },
-            { id: "Canada", lat: 56.1304, lon: -106.3468 },
-            { id: "China", lat: 35.8617, lon: 104.1954 },
-            { id: "France", lat: 46.2276, lon: 2.2137 },
-            { id: "Germany", lat: 51.1657, lon: 10.4515 },
-            { id: "India", lat: 20.5937, lon: 78.9629 },
-            { id: "Italy", lat: 41.8719, lon: 12.5674 }, // Added Italy to match previous context if needed, but sticking to requested list mainly
-            { id: "Japan", lat: 36.2048, lon: 138.2529 },
-            { id: "Mexico", lat: 23.6345, lon: -102.5528 },
-            { id: "Russia", lat: 61.5240, lon: 105.3188 },
-            { id: "South Africa", lat: -30.5595, lon: 22.9375 },
-            { id: "South Korea", lat: 35.9078, lon: 127.7669 },
-            { id: "United Kingdom", lat: 55.3781, lon: -3.4360 },
-            { id: "United States", lat: 37.0902, lon: -95.7129 }
+            { id: "Australia", code: "AUS", lat: -25.2744, lon: 133.7751 },
+            { id: "Brazil", code: "BRA", lat: -14.2350, lon: -51.9253 },
+            { id: "Canada", code: "CAN", lat: 56.1304, lon: -106.3468 },
+            { id: "China", code: "CHN", lat: 35.8617, lon: 104.1954 },
+            { id: "France", code: "FRA", lat: 46.2276, lon: 2.2137 },
+            { id: "Germany", code: "DEU", lat: 51.1657, lon: 10.4515 },
+            { id: "India", code: "IND", lat: 20.5937, lon: 78.9629 },
+            { id: "Italy", code: "ITA", lat: 41.8719, lon: 12.5674 },
+            { id: "Japan", code: "JPN", lat: 36.2048, lon: 138.2529 },
+            { id: "Mexico", code: "MEX", lat: 23.6345, lon: -102.5528 },
+            { id: "Russia", code: "RUS", lat: 61.5240, lon: 105.3188 },
+            { id: "South Africa", code: "ZAF", lat: -30.5595, lon: 22.9375 },
+            { id: "South Korea", code: "KOR", lat: 35.9078, lon: 127.7669 },
+            { id: "United Kingdom", code: "GBR", lat: 55.3781, lon: -3.4360 },
+            { id: "United States", code: "USA", lat: 37.0902, lon: -95.7129 }
         ].sort((a, b) => a.id.localeCompare(b.id));
 
         const RSS_FEEDS = {
@@ -162,7 +199,7 @@
             "Global": 'http://feeds.bbci.co.uk/news/world/rss.xml'
         };
 
-        // --- Helper ---
+        // --- Helpers ---
         function latLongToVector3(lat, lon, radius) {
             const phi = (90 - lat) * (Math.PI / 180);
             const theta = (lon + 180) * (Math.PI / 180);
@@ -172,40 +209,43 @@
             return new THREE.Vector3(x, y, z);
         }
 
-        // --- Helper: RSS Fetcher with Fallback ---
+        async function fetchWeather(lat, lon) {
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,cloud_cover,wind_speed_10m,weather_code`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (!data.current) throw new Error();
+                return {
+                    temp: Math.round(data.current.temperature_2m),
+                    clouds: data.current.cloud_cover ?? 50,
+                    wind: Math.round(data.current.wind_speed_10m),
+                    code: data.current.weather_code
+                };
+            } catch (e) {
+                return { temp: 22, clouds: 50, wind: 10, code: 0 };
+            }
+        }
+
         async function fetchNews(rssUrl) {
             const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-
-            const fallbackData = [
-                { title: 'System Status: Satellite Link Stable', link: '#', time: 'NOW', source: 'SYS', tag: 'STAT' },
-                { title: 'Global Monitoring Active', link: '#', time: 'NOW', source: 'SYS', tag: 'STAT' },
-                { title: 'Data Feed Reconnecting...', link: '#', time: 'NOW', source: 'SYS', tag: 'WARN' }
-            ];
-
-            const fetchPromise = fetch(apiUrl)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'ok') {
-                        return data.items.map(item => ({
-                            title: item.title,
-                            link: item.link,
-                            time: new Date(item.pubDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            source: data.feed.title.split(' ')[0],
-                            tag: 'LIVE'
-                        }));
-                    }
-                    throw new Error('API Error');
-                });
-
-            // Race: API vs 2s Timeout
-            const timeoutPromise = new Promise(resolve => setTimeout(() => {
-                resolve(fallbackData);
-            }, 2000));
-
             try {
-                return await Promise.race([fetchPromise, timeoutPromise]);
+                const res = await fetch(apiUrl);
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    return data.items.map(item => ({
+                        title: item.title,
+                        link: item.link,
+                        time: new Date(item.pubDate || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        source: data.feed.title.split(' ')[0],
+                        tag: 'LIVE'
+                    }));
+                }
+                throw new Error();
             } catch (e) {
-                return fallbackData;
+                return [
+                    { title: 'Data Feed Synchronized', link: '#', time: 'NOW', source: 'SYS', tag: 'STAT' },
+                    { title: 'Global News Hub Online', link: '#', time: 'NOW', source: 'SYS', tag: 'STAT' }
+                ];
             }
         }
 
@@ -217,43 +257,37 @@
                 this.mouseDownPos = new THREE.Vector2();
                 this.selectedCountry = null;
                 this.selectedPosition = new THREE.Vector3();
-                this.sunMesh = null;
-                this.moonMesh = null;
-                this.assets = {}; // Initialize empty
+                this.targetCloudDensity = 0.5;
+                this.currentCloudDensity = 0.5;
+                this.targetWindSpeed = 10;
+                this.currentWindSpeed = 10;
+                this.shaderTime = 0;
 
-                // Camera transition state
                 this.isFlying = false;
                 this.flyStartTime = performance.now();
-                this.flyDuration = 2000;
+                this.flyDuration = 1200; // Accelerated for a snappier feel
                 this.startSpherical = new THREE.Spherical();
                 this.targetSpherical = new THREE.Spherical();
                 this.currentSpherical = new THREE.Spherical();
 
-                // 1. Instant Start: Init scene immediately
+                this.startQuaternion = new THREE.Quaternion();
+                this.targetQuaternion = new THREE.Quaternion();
+
                 this.initScene();
                 this.initCelestialBodies();
                 this.initStarfield();
-
-                // Initialize Globe with placeholders immediately
                 this.initGlobe();
                 this.initMarkers();
 
-                // 2. Load Resources in Background
                 this.loadResources().then(() => {
-                    // Update materials when textures arrive
                     this.updateGlobeMaterials();
                     this.initBorders();
                     this.initClouds();
                 });
 
-                // 3. Init Controls immediately so user can spin
                 this.initControls();
                 this.initCountryDock();
-
-                // 4. Start Animation Loop Immediately
                 this.animate();
-
-                // 5. Remove Loader Immediately
                 this.hideLoader();
             }
 
@@ -261,12 +295,10 @@
                 this.scene = new THREE.Scene();
                 this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
                 this.camera.position.z = 15;
-
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
                 this.renderer.setPixelRatio(window.devicePixelRatio);
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
                 this.container.appendChild(this.renderer.domElement);
-
                 this.sunDirection = new THREE.Vector3();
             }
 
@@ -274,26 +306,16 @@
                 const geometry = new THREE.BufferGeometry();
                 const vertices = [];
                 for (let i = 0; i < 5000; i++) {
-                    const x = THREE.MathUtils.randFloatSpread(1500);
-                    const y = THREE.MathUtils.randFloatSpread(1500);
-                    const z = THREE.MathUtils.randFloatSpread(1500);
-                    vertices.push(x, y, z);
+                    vertices.push(THREE.MathUtils.randFloatSpread(1500), THREE.MathUtils.randFloatSpread(1500), THREE.MathUtils.randFloatSpread(1500));
                 }
                 geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-                const material = new THREE.PointsMaterial({ color: 0x888888, size: 0.7 });
-                this.starfield = new THREE.Points(geometry, material);
-                this.scene.add(this.starfield);
+                this.scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x888888, size: 0.7 })));
             }
 
             async loadResources() {
                 const loader = new THREE.TextureLoader();
                 loader.setCrossOrigin('anonymous');
-
-                const load = (url) => new Promise((resolve) => {
-                    loader.load(url, resolve, undefined, () => resolve(null));
-                });
-
-                // Load concurrently
+                const load = (url) => new Promise(r => loader.load(url, r, undefined, () => r(null)));
                 this.assets = {
                     day: await load(TEXTURES.day),
                     night: await load(TEXTURES.night),
@@ -304,88 +326,79 @@
             }
 
             initGlobe() {
-                const geometry = new THREE.SphereGeometry(GLOBE_RADIUS, 128, 128);
-                // Initial material (before textures load)
                 this.globeMaterial = new THREE.ShaderMaterial({
                     uniforms: {
                         uDayTexture: { value: new THREE.Texture() },
                         uNightTexture: { value: new THREE.Texture() },
                         uSpecularTexture: { value: new THREE.Texture() },
                         uSunDirection: { value: this.sunDirection },
-                        uHasDay: { value: false },
-                        uHasNight: { value: false },
-                        uHasSpecular: { value: false }
+                        uHasDay: { value: false }, uHasNight: { value: false }, uHasSpecular: { value: false }
                     },
-                    vertexShader: globeVertexShader,
-                    fragmentShader: globeFragmentShader
+                    vertexShader: globeVertexShader, fragmentShader: globeFragmentShader
                 });
-
-                this.globe = new THREE.Mesh(geometry, this.globeMaterial);
+                this.globe = new THREE.Mesh(new THREE.SphereGeometry(GLOBE_RADIUS, 128, 128), this.globeMaterial);
                 this.globe.rotation.y = -Math.PI / 2;
                 this.scene.add(this.globe);
             }
 
             updateGlobeMaterials() {
-                if (this.globeMaterial && this.assets) {
-                    this.globeMaterial.uniforms.uDayTexture.value = this.assets.day || new THREE.Texture();
-                    this.globeMaterial.uniforms.uNightTexture.value = this.assets.night || new THREE.Texture();
-                    this.globeMaterial.uniforms.uSpecularTexture.value = this.assets.specular || new THREE.Texture();
-                    this.globeMaterial.uniforms.uHasDay.value = !!this.assets.day;
-                    this.globeMaterial.uniforms.uHasNight.value = !!this.assets.night;
-                    this.globeMaterial.uniforms.uHasSpecular.value = !!this.assets.specular;
-                    this.globeMaterial.needsUpdate = true;
-                }
+                if (!this.assets) return;
+                this.globeMaterial.uniforms.uDayTexture.value = this.assets.day || new THREE.Texture();
+                this.globeMaterial.uniforms.uNightTexture.value = this.assets.night || new THREE.Texture();
+                this.globeMaterial.uniforms.uSpecularTexture.value = this.assets.specular || new THREE.Texture();
+                ['uHasDay', 'uHasNight', 'uHasSpecular'].forEach(k => this.globeMaterial.uniforms[k].value = !!this.assets[k.replace('uHas', '').toLowerCase()]);
             }
 
             initBorders() {
-                if (!this.assets?.topo || typeof topojson === 'undefined') return;
+                if (!this.assets?.topo) return;
                 try {
                     const countries = topojson.feature(this.assets.topo, this.assets.topo.objects.countries);
                     const vertices = [];
-                    countries.features.forEach(feature => {
-                        const coords = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
-                        coords.forEach(polygon => {
-                            polygon.forEach(ring => {
-                                for (let i = 0; i < ring.length - 1; i++) {
-                                    const p1 = latLongToVector3(ring[i][1], ring[i][0], BORDER_RADIUS);
-                                    const p2 = latLongToVector3(ring[i + 1][1], ring[i + 1][0], BORDER_RADIUS);
-                                    vertices.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
-                                }
-                            });
-                        });
+                    countries.features.forEach(f => {
+                        const coords = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+                        coords.forEach(poly => poly.forEach(ring => {
+                            for (let i = 0; i < ring.length - 1; i++) {
+                                const p1 = latLongToVector3(ring[i][1], ring[i][0], BORDER_RADIUS);
+                                const p2 = latLongToVector3(ring[i + 1][1], ring[i + 1][0], BORDER_RADIUS);
+                                vertices.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+                            }
+                        }));
                     });
-                    const geometry = new THREE.BufferGeometry();
-                    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-                    const material = new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.2 });
-                    this.borderLayer = new THREE.LineSegments(geometry, material);
+                    const geom = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                    this.borderLayer = new THREE.LineSegments(geom, new THREE.LineBasicMaterial({ color: 0x00f2ff, transparent: true, opacity: 0.2 }));
                     this.borderLayer.rotation.y = -Math.PI / 2;
                     this.scene.add(this.borderLayer);
-                } catch (e) { console.warn("Border init failed", e); }
+                } catch (e) { }
             }
 
             initClouds() {
                 if (!this.assets?.clouds) return;
-                const geometry = new THREE.SphereGeometry(CLOUD_RADIUS, 64, 64);
-                const material = new THREE.MeshPhongMaterial({
-                    map: this.assets.clouds,
-                    transparent: true,
-                    opacity: 0.3,
-                    blending: THREE.AdditiveBlending
+                this.cloudMaterial = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uCloudTexture: { value: this.assets.clouds },
+                        uCloudDensity: { value: 0.5 },
+                        uTime: { value: 0.0 }
+                    },
+                    vertexShader: cloudVertexShader, fragmentShader: cloudFragmentShader,
+                    transparent: true, blending: THREE.AdditiveBlending,
+                    side: THREE.DoubleSide
                 });
-                this.cloudMesh = new THREE.Mesh(geometry, material);
+                this.cloudMesh = new THREE.Mesh(new THREE.SphereGeometry(CLOUD_RADIUS, 128, 128), this.cloudMaterial);
                 this.cloudMesh.rotation.y = -Math.PI / 2;
                 this.scene.add(this.cloudMesh);
             }
 
             initMarkers() {
-                const visualGeom = new THREE.CircleGeometry(0.12, 16);
+                // Minimalist but visible dots
+                const geom = new THREE.CircleGeometry(0.1, 16);
                 const visualMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, side: THREE.DoubleSide });
-                this.markerVisuals = new THREE.InstancedMesh(visualGeom, visualMat, COUNTRIES.length);
-                this.markerVisuals.rotation.y = -Math.PI / 2;
+                // Invisible but raycastable
+                const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide });
 
-                const hitGeom = new THREE.CircleGeometry(0.25, 16);
-                const hitMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0, side: THREE.DoubleSide });
-                this.markerHitbox = new THREE.InstancedMesh(hitGeom, hitMat, COUNTRIES.length);
+                this.markerVisuals = new THREE.InstancedMesh(geom, visualMat, COUNTRIES.length);
+                this.markerHitbox = new THREE.InstancedMesh(geom, hitMat, COUNTRIES.length);
+
+                this.markerVisuals.rotation.y = -Math.PI / 2;
                 this.markerHitbox.rotation.y = -Math.PI / 2;
 
                 const dummy = new THREE.Object3D();
@@ -398,18 +411,14 @@
                     this.markerHitbox.setMatrixAt(i, dummy.matrix);
                 });
 
-                this.scene.add(this.markerVisuals);
-                this.scene.add(this.markerHitbox);
+                this.scene.add(this.markerVisuals, this.markerHitbox);
             }
 
             initControls() {
                 this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-                this.controls.enableDamping = true;
-                this.controls.dampingFactor = 0.05;
-                this.controls.rotateSpeed = 0.6;
-                this.controls.enablePan = false;
-                this.controls.autoRotate = true;
-                this.controls.autoRotateSpeed = 0.5;
+                this.controls.enableDamping = true; this.controls.dampingFactor = 0.05;
+                this.controls.rotateSpeed = 0.6; this.controls.enablePan = false;
+                this.controls.autoRotate = true; this.controls.autoRotateSpeed = 0.5;
 
                 const startPos = latLongToVector3(40, -100, CAMERA_DISTANCE);
                 startPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
@@ -418,33 +427,38 @@
                 this.controls.update();
 
                 window.addEventListener('resize', () => this.onWindowResize());
-                window.addEventListener('mousemove', (e) => this.onMouseMove(e));
                 window.addEventListener('pointerdown', (e) => {
                     if (!e.isPrimary) return;
                     this.mouseDownPos.set(e.clientX, e.clientY);
-                    this.mouseDownTime = Date.now();
-                    this.controls.autoRotate = false;
-                    this.isFlying = false;
+                    this.mouseDownTime = performance.now();
+                    this.controls.autoRotate = false; this.isFlying = false;
                 });
                 window.addEventListener('pointerup', (e) => this.onPointerUp(e));
-
                 document.getElementById('close-panel').addEventListener('click', () => {
                     document.getElementById('news-panel').classList.remove('active');
-                    this.controls.enableDamping = true;
-                    this.controls.autoRotate = true;
+                    this.controls.enableDamping = true; this.controls.autoRotate = true;
                 });
-
                 this.clock = new THREE.Clock();
             }
 
             initCountryDock() {
                 const dock = document.getElementById('country-dock');
                 if (!dock) return;
+
+                // Add Home Node
+                const homeNode = document.createElement('div');
+                homeNode.className = 'country-btn home-btn';
+                homeNode.innerHTML = `<span>⌂</span><span class="label">HOME BASE</span>`;
+                homeNode.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.flyToCountry({ lat: 40, lon: -100, id: "Home" });
+                });
+                dock.appendChild(homeNode);
+
                 COUNTRIES.forEach(country => {
                     const btn = document.createElement('div');
                     btn.className = 'country-btn';
-                    btn.innerText = country.id.substring(0, 2).toUpperCase();
-                    btn.title = country.id;
+                    btn.innerHTML = `<span>${country.code}</span><span class="label">${country.id}</span>`;
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
                         this.flyToCountry(country);
@@ -457,15 +471,18 @@
                 this.selectedCountry = country;
                 this.controls.autoRotate = false;
 
-                // Capture current spherical state
+                // Store starting state
                 this.startSpherical.setFromVector3(this.camera.position);
+                this.startQuaternion.copy(this.camera.quaternion);
 
-                // Calculate target position and spherical state
+                // Calculate target position
                 const targetVec = latLongToVector3(country.lat, country.lon, CAMERA_DISTANCE);
                 targetVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
-                this.targetSpherical.setFromVector3(targetVec);
 
-                // Ensure shortest path for longitude (theta)
+                this.targetSpherical.setFromVector3(targetVec);
+                this.targetQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), targetVec.clone().negate().normalize());
+
+                // Longitude shortest path
                 let dTheta = this.targetSpherical.theta - this.startSpherical.theta;
                 while (dTheta > Math.PI) dTheta -= 2 * Math.PI;
                 while (dTheta < -Math.PI) dTheta += 2 * Math.PI;
@@ -473,17 +490,14 @@
 
                 this.isFlying = true;
                 this.flyStartTime = performance.now();
+                if (country.id !== "Home") this.showNews(country);
             }
 
             initCelestialBodies() {
                 const sunGeom = new THREE.SphereGeometry(0.5, 32, 32);
-                const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFFF00 });
-                this.sunMesh = new THREE.Mesh(sunGeom, sunMat);
+                this.sunMesh = new THREE.Mesh(sunGeom, new THREE.MeshBasicMaterial({ color: 0xFFFF00 }));
                 this.scene.add(this.sunMesh);
-
-                const moonGeom = new THREE.SphereGeometry(0.2, 16, 16);
-                const moonMat = new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x222222, shininess: 5 });
-                this.moonMesh = new THREE.Mesh(moonGeom, moonMat);
+                this.moonMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x222222 }));
                 this.scene.add(this.moonMesh);
             }
 
@@ -493,16 +507,11 @@
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
             }
 
-            onMouseMove(event) {
-                this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            }
-
             onPointerUp(event) {
                 if (!event.isPrimary) return;
                 const dist = this.mouseDownPos.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
-                const duration = Date.now() - (this.mouseDownTime || 0);
-                if (dist > 15 || duration > 500) return;
+                const duration = performance.now() - (this.mouseDownTime || 0);
+                if (dist > 10 || duration > 500) return;
 
                 this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
                 this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -510,30 +519,11 @@
                 const intersects = this.raycaster.intersectObject(this.markerHitbox);
 
                 if (intersects.length > 0) {
-                    const instanceId = intersects[0].instanceId;
-                    const country = COUNTRIES[instanceId];
-                    this.showNews(country);
-
-                    this.startSpherical.setFromVector3(this.camera.position);
-                    const targetVec = latLongToVector3(country.lat, country.lon, CAMERA_DISTANCE);
-                    targetVec.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
-                    this.targetSpherical.setFromVector3(targetVec);
-
-                    let dTheta = this.targetSpherical.theta - this.startSpherical.theta;
-                    while (dTheta > Math.PI) dTheta -= 2 * Math.PI;
-                    while (dTheta < -Math.PI) dTheta += 2 * Math.PI;
-                    this.targetSpherical.theta = this.startSpherical.theta + dTheta;
-
-                    this.isFlying = true;
-                    this.flyStartTime = performance.now();
-                } else {
-                    const panel = document.getElementById('news-panel');
-                    if (panel.classList.contains('active') && !event.target.closest('#news-panel')) {
-                        panel.classList.remove('active');
-                        this.controls.enableDamping = true;
-                        this.controls.autoRotate = true;
-                        this.selectedCountry = null;
-                    }
+                    this.flyToCountry(COUNTRIES[intersects[0].instanceId]);
+                } else if (!event.target.closest('#ui-overlay')) {
+                    document.getElementById('news-panel').classList.remove('active');
+                    this.controls.enableDamping = true; this.controls.autoRotate = true;
+                    this.selectedCountry = null;
                 }
             }
 
@@ -542,21 +532,25 @@
                 this.selectedPosition.copy(latLongToVector3(country.lat, country.lon, MARKER_RADIUS));
                 const panel = document.getElementById('news-panel');
                 const content = document.getElementById('news-content');
-                this.controls.enableDamping = false;
-                this.controls.autoRotate = false;
+                this.controls.enableDamping = false; this.controls.autoRotate = false;
                 panel.classList.add('active');
-                content.innerHTML = `<h2>${country.id} HUD</h2><p>Scanning...</p>`;
-                const feedUrl = RSS_FEEDS[country.id] || RSS_FEEDS['Global'];
-                const items = await fetchNews(feedUrl);
-                content.innerHTML = `<h2>${country.id} LIVE</h2><div id='news-list'></div>`;
+                content.innerHTML = `<h2>${country.id} HUD</h2><p>Scanning atmospheric data...</p>`;
+
+                const [news, weather] = await Promise.all([fetchNews(RSS_FEEDS[country.id] || RSS_FEEDS['Global']), fetchWeather(country.lat, country.lon)]);
+
+                this.targetCloudDensity = weather.clouds / 100;
+                this.targetWindSpeed = weather.wind;
+                content.innerHTML = `<h2>${country.id} INTELLIGENCE</h2><div id='news-list'></div>`;
                 const list = document.getElementById('news-list');
-                items.forEach((item, i) => {
-                    const el = document.createElement('a');
-                    el.className = 'news-item';
-                    el.href = item.link;
-                    el.target = '_blank';
-                    el.rel = 'noopener';
-                    el.innerHTML = `<div class='meta'><span class='tag'>[${item.tag}]</span> ${item.source} • ${item.time}</div><div class='title'>${item.title}</div>`;
+                news.forEach((item, i) => {
+                    const el = document.createElement('a'); el.className = 'news-item';
+                    el.href = item.link; el.target = '_blank'; el.rel = 'noopener';
+                    el.innerHTML = `
+                        <div class='meta'>
+                            <span class='tag'>[${item.tag}]</span> ${item.source} • ${item.time}
+                            ${i === 0 ? `<span class="weather-tag">${weather.temp}°C | CLOUDS ${weather.clouds}% | WIND ${weather.wind}km/h</span>` : ''}
+                        </div>
+                        <div class='title'>${item.title}</div>`;
                     list.appendChild(el);
                     setTimeout(() => el.classList.add('visible'), 50 + i * 50);
                 });
@@ -564,10 +558,7 @@
 
             hideLoader() {
                 const loader = document.getElementById('loader');
-                if (loader) {
-                    loader.style.display = 'none';
-                    loader.remove();
-                }
+                if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 1000); }
             }
 
             animate() {
@@ -575,77 +566,102 @@
                 const delta = this.clock.getDelta();
                 const now = new Date();
                 const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
-                const start = new Date(now.getUTCFullYear(), 0, 0);
-                const dayOfYear = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-                const time = Date.now() * 0.0005;
+                const startDay = new Date(now.getUTCFullYear(), 0, 0);
+                const dayOfYear = Math.floor((now - startDay) / (1000 * 60 * 60 * 24));
+                const shaderTime = Date.now() * 0.0005;
 
                 const sunLon = -((utcHours - 12.0) / 24.0) * (Math.PI * 2.0);
-                const axialTilt = 23.44 * (Math.PI / 180);
-                const declination = axialTilt * Math.sin((dayOfYear - 81) * (2.0 * Math.PI / 365.25));
-
+                const declination = 23.44 * (Math.PI / 180) * Math.sin((dayOfYear - 81) * (2.0 * Math.PI / 365.25));
                 this.sunDirection.set(Math.cos(declination) * Math.sin(sunLon), Math.sin(declination), Math.cos(declination) * Math.cos(sunLon)).normalize();
 
                 if (this.globeMaterial) this.globeMaterial.uniforms.uSunDirection.value.copy(this.sunDirection);
                 if (this.sunMesh) this.sunMesh.position.copy(this.sunDirection).multiplyScalar(100);
-                if (this.moonMesh) this.moonMesh.position.set(Math.cos(time) * 30, Math.sin(time * 0.5) * 10, Math.sin(time) * 30);
+                if (this.moonMesh) this.moonMesh.position.set(Math.cos(shaderTime) * 30, Math.sin(shaderTime * 0.5) * 10, Math.sin(shaderTime) * 30);
                 if (this.cloudMesh) this.cloudMesh.rotation.y += delta * 0.05 + 0.00005;
-                if (this.starfield) this.starfield.rotation.y -= delta * 0.01;
 
-                const timeDisplay = document.getElementById('time-display');
-                if (timeDisplay) timeDisplay.textContent = now.toUTCString();
+                // Smooth Cloud & Wind Transition
+                this.currentCloudDensity = THREE.MathUtils.lerp(this.currentCloudDensity, this.targetCloudDensity, 0.05);
+                this.currentWindSpeed = THREE.MathUtils.lerp(this.currentWindSpeed, this.targetWindSpeed, 0.02);
+
+                if (this.cloudMaterial) {
+                    this.cloudMaterial.uniforms.uCloudDensity.value = this.currentCloudDensity;
+                    // Drive cloud swirl speed with local wind speed
+                    this.shaderTime += delta * (0.2 + this.currentWindSpeed * 0.05);
+                    this.cloudMaterial.uniforms.uTime.value = this.shaderTime;
+                }
 
                 this.controls.update();
-
                 if (this.isFlying) {
                     const elapsed = performance.now() - this.flyStartTime;
                     const t = Math.min(elapsed / this.flyDuration, 1);
 
-                    // Smooth easing
-                    const easedT = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                    // Quintic Out Easing for snap-to-finish smoothness
+                    const easedT = 1 - Math.pow(1 - t, 4);
 
-                    // Interpolate spherical coordinates
+                    // Interpolate Position
                     this.currentSpherical.phi = THREE.MathUtils.lerp(this.startSpherical.phi, this.targetSpherical.phi, easedT);
                     this.currentSpherical.theta = THREE.MathUtils.lerp(this.startSpherical.theta, this.targetSpherical.theta, easedT);
                     this.currentSpherical.radius = THREE.MathUtils.lerp(this.startSpherical.radius, this.targetSpherical.radius, easedT);
-
                     this.camera.position.setFromSpherical(this.currentSpherical);
+
+                    // Stabilize look-at during flight
+                    this.camera.lookAt(0, 0, 0);
 
                     if (t >= 1) {
                         this.isFlying = false;
+                        this.controls.target.set(0, 0, 0);
                     }
                 }
 
+                // UI Updates
+                const timeDisplay = document.getElementById('time-display');
+                if (timeDisplay) timeDisplay.textContent = now.toUTCString();
+
+                this.drawTether();
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            drawTether() {
                 const panel = document.getElementById('news-panel');
+                const tether = document.getElementById('tether-path');
                 if (this.selectedCountry && panel.classList.contains('active')) {
                     const pos = this.selectedPosition.clone();
                     pos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
-                    const normal = pos.clone().normalize();
                     const cameraToPoint = pos.clone().sub(this.camera.position).normalize();
-                    const dot = normal.dot(cameraToPoint);
+                    const dot = pos.clone().normalize().dot(cameraToPoint);
 
                     if (dot < 0) {
                         panel.style.display = 'block';
                         pos.project(this.camera);
-                        const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                        const y = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
-                        panel.style.transform = `translate(${x + 20}px, ${y - 40}px)`;
-                    } else { panel.style.display = 'none'; }
-                } else { panel.style.display = 'none'; }
+                        const mx = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                        const my = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
+                        panel.style.transform = `translate(${mx + 30}px, ${my - 50}px)`;
 
-                this.renderer.render(this.scene, this.camera);
+                        // SVG Bezier Curve
+                        const panelRect = panel.getBoundingClientRect();
+                        const x1 = panelRect.left;
+                        const y1 = panelRect.top + 20;
+                        const x2 = mx;
+                        const y2 = my;
+                        // Control point for curve
+                        const cx = (x1 + x2) / 2 - 50;
+                        const cy = (y1 + y2) / 2;
+                        tether.setAttribute('d', `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+                        tether.style.display = 'block';
+                    } else { panel.style.display = 'none'; tether.style.display = 'none'; }
+                } else { panel.style.display = 'none'; tether.style.display = 'none'; }
             }
         }
 
         new GlobeApp();
 
-        // --- Auto-Refresh Logic ---
         (function () {
             let lastEtag = null;
             async function checkForUpdate() {
                 try {
                     const url = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 't=' + Date.now();
-                    const response = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
-                    const etag = response.headers.get('etag');
+                    const res = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
+                    const etag = res.headers.get('etag');
                     if (etag && lastEtag && lastEtag !== etag) window.location.reload();
                     lastEtag = etag;
                 } catch (e) { }
