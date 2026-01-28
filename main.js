@@ -120,38 +120,53 @@ const cloudFragmentShader = `
 
 // --- Data ---
 const COUNTRIES = [
-    { id: "Australia", code: "AUS", lat: -25.2744, lon: 133.7751 },
-    { id: "Brazil", code: "BRA", lat: -14.2350, lon: -51.9253 },
-    { id: "Canada", code: "CAN", lat: 56.1304, lon: -106.3468 },
-    { id: "China", code: "CHN", lat: 35.8617, lon: 104.1954 },
-    { id: "France", code: "FRA", lat: 46.2276, lon: 2.2137 },
-    { id: "Germany", code: "DEU", lat: 51.1657, lon: 10.4515 },
-    { id: "India", code: "IND", lat: 20.5937, lon: 78.9629 },
-    { id: "Italy", code: "ITA", lat: 41.8719, lon: 12.5674 },
-    { id: "Japan", code: "JPN", lat: 36.2048, lon: 138.2529 },
-    { id: "Mexico", code: "MEX", lat: 23.6345, lon: -102.5528 },
-    { id: "Russia", code: "RUS", lat: 61.5240, lon: 105.3188 },
-    { id: "South Africa", code: "ZAF", lat: -30.5595, lon: 22.9375 },
-    { id: "South Korea", code: "KOR", lat: 35.9078, lon: 127.7669 },
-    { id: "United Kingdom", code: "GBR", lat: 55.3781, lon: -3.4360 },
-    { id: "United States", code: "USA", lat: 37.0902, lon: -95.7129 }
+    { id: "Argentina", capital: "Buenos Aires", code: "ARG", lat: -34.6037, lon: -58.3816 },
+    { id: "Australia", capital: "Canberra", code: "AUS", lat: -35.2809, lon: 149.1300 },
+    { id: "Brazil", capital: "Brasília", code: "BRA", lat: -15.8267, lon: -47.9218 },
+    { id: "Canada", capital: "Ottawa", code: "CAN", lat: 45.4215, lon: -75.6972 },
+    { id: "China", capital: "Beijing", code: "CHN", lat: 39.9042, lon: 116.4074 },
+    { id: "Egypt", capital: "Cairo", code: "EGY", lat: 30.0444, lon: 31.2357 },
+    { id: "France", capital: "Paris", code: "FRA", lat: 48.8566, lon: 2.3522 },
+    { id: "Germany", capital: "Berlin", code: "DEU", lat: 52.5200, lon: 13.4050 },
+    { id: "India", capital: "New Delhi", code: "IND", lat: 28.6139, lon: 77.2090 },
+    { id: "Indonesia", capital: "Jakarta", code: "IDN", lat: -6.2088, lon: 106.8456 },
+    { id: "Italy", capital: "Rome", code: "ITA", lat: 41.9028, lon: 12.4964 },
+    { id: "Japan", capital: "Tokyo", code: "JPN", lat: 35.6762, lon: 139.6503 },
+    { id: "Mexico", capital: "Mexico City", code: "MEX", lat: 19.4326, lon: -99.1332 },
+    { id: "Nigeria", capital: "Abuja", code: "NGA", lat: 9.0765, lon: 7.3986 },
+    { id: "Russia", capital: "Moscow", code: "RUS", lat: 55.7558, lon: 37.6173 },
+    { id: "Saudi Arabia", capital: "Riyadh", code: "SAU", lat: 24.7136, lon: 46.6753 },
+    { id: "South Africa", capital: "Pretoria", code: "ZAF", lat: -25.7479, lon: 28.2293 },
+    { id: "South Korea", capital: "Seoul", code: "KOR", lat: 37.5665, lon: 126.9780 },
+    { id: "Spain", capital: "Madrid", code: "ESP", lat: 40.4168, lon: -3.7038 },
+    { id: "Turkey", capital: "Ankara", code: "TUR", lat: 39.9334, lon: 32.8597 },
+    { id: "United Kingdom", capital: "London", code: "GBR", lat: 51.5074, lon: -0.1278 },
+    { id: "United States", capital: "Washington D.C.", code: "USA", lat: 38.9072, lon: -77.0369 }
 ].sort((a, b) => a.id.localeCompare(b.id));
 
 const RSS_FEEDS = {
-    "Canada": 'https://www.cbc.ca/cmlink/rss-topstories',
-    "United States": 'http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml',
-    "United Kingdom": 'http://feeds.bbci.co.uk/news/uk/rss.xml',
-    "Japan": 'https://www3.nhk.or.jp/rss/news/cat0.xml',
-    "Germany": 'https://www.spiegel.de/international/index.rss',
-    "India": 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms',
+    "Argentina": 'https://www.mercopress.com/rss',
     "Australia": 'https://www.abc.net.au/news/feed/51120/rss.xml',
     "Brazil": 'https://www.brazilsvr.com/rss.xml',
-    "South Africa": 'https://www.news24.com/news24/rss',
-    "France": 'https://www.france24.com/en/rss',
+    "Canada": 'https://www.cbc.ca/cmlink/rss-topstories',
     "China": 'http://www.chinadaily.com.cn/rss/china_rss.xml',
-    "Russia": 'https://tass.com/rss',
-    "South Korea": 'http://www.koreaherald.com/common/rss_xml.php?ct=101',
+    "Egypt": 'https://dailynewsegypt.com/feed/',
+    "France": 'https://www.france24.com/en/rss',
+    "Germany": 'https://www.spiegel.de/international/index.rss',
+    "India": 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms',
+    "Indonesia": 'https://www.thejakartapost.com/rss/latest',
+    "Italy": 'https://www.ansa.it/sitoweb/export/ansareuters_en.xml',
+    "Japan": 'https://www3.nhk.or.jp/rss/news/cat0.xml',
     "Mexico": 'https://mexiconewsdaily.com/feed/',
+    "Nigeria": 'https://guardian.ng/feed/',
+    "Russia": 'https://tass.com/rss',
+    "Saudi Arabia": 'https://www.arabnews.com/cat/1/rss.xml',
+    "South Africa": 'https://www.news24.com/news24/rss',
+    "South Korea": 'http://www.koreaherald.com/common/rss_xml.php?ct=101',
+    "Spain": 'https://elpais.com/rss/elpais/inenglish.xml',
+    "Turkey": 'https://www.hurriyetdailynews.com/rss.aspx',
+    "United Kingdom": 'http://feeds.bbci.co.uk/news/uk/rss.xml',
+    "United States": 'http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml',
     "Global": 'http://feeds.bbci.co.uk/news/world/rss.xml'
 };
 
@@ -213,6 +228,7 @@ class GlobeApp {
         this.mouseDownPos = new THREE.Vector2();
         this.selectedCountry = null;
         this.selectedPosition = new THREE.Vector3();
+        this.userPrefersRotation = false;
         this.targetCloudDensity = 0.5;
         this.currentCloudDensity = 0.5;
         this.targetWindSpeed = 10;
@@ -230,8 +246,6 @@ class GlobeApp {
         this.targetQuaternion = new THREE.Quaternion();
 
         this.initScene();
-        this.initCelestialBodies();
-        this.initStarfield();
         this.initGlobe();
         this.initMarkers();
 
@@ -243,6 +257,7 @@ class GlobeApp {
 
         this.initControls();
         this.initCountryDock();
+        this.initRotationToggle();
         this.animate();
         this.hideLoader();
     }
@@ -258,15 +273,7 @@ class GlobeApp {
         this.sunDirection = new THREE.Vector3();
     }
 
-    initStarfield() {
-        const geometry = new THREE.BufferGeometry();
-        const vertices = [];
-        for (let i = 0; i < 5000; i++) {
-            vertices.push(THREE.MathUtils.randFloatSpread(1500), THREE.MathUtils.randFloatSpread(1500), THREE.MathUtils.randFloatSpread(1500));
-        }
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        this.scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x888888, size: 0.7 })));
-    }
+
 
     async loadResources() {
         const loader = new THREE.TextureLoader();
@@ -359,7 +366,10 @@ class GlobeApp {
 
         const dummy = new THREE.Object3D();
         COUNTRIES.forEach((c, i) => {
+            // Position
             const pos = latLongToVector3(c.lat, c.lon, MARKER_RADIUS);
+
+            // Instanced Mesh Matrix
             dummy.position.copy(pos);
             dummy.lookAt(0, 0, 0);
             dummy.updateMatrix();
@@ -370,11 +380,29 @@ class GlobeApp {
         this.scene.add(this.markerVisuals, this.markerHitbox);
     }
 
+
+
+    initRotationToggle() {
+        const btn = document.getElementById('rotate-toggle');
+        if (!btn) return;
+
+        // Sync button text to state
+        btn.textContent = `Auto-Rotate: OFF`;
+        btn.classList.remove('active');
+
+        btn.addEventListener('click', () => {
+            this.userPrefersRotation = !this.userPrefersRotation;
+            this.controls.autoRotate = this.userPrefersRotation;
+            btn.classList.toggle('active', this.userPrefersRotation);
+            btn.textContent = `Auto-Rotate: ${this.userPrefersRotation ? 'ON' : 'OFF'}`;
+        });
+    }
+
     initControls() {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true; this.controls.dampingFactor = 0.05;
         this.controls.rotateSpeed = 0.6; this.controls.enablePan = false;
-        this.controls.autoRotate = true; this.controls.autoRotateSpeed = 0.5;
+        this.controls.autoRotate = false; this.controls.autoRotateSpeed = 0.5;
 
         const startPos = latLongToVector3(40, -100, CAMERA_DISTANCE);
         startPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
@@ -392,7 +420,8 @@ class GlobeApp {
         window.addEventListener('pointerup', (e) => this.onPointerUp(e));
         document.getElementById('close-panel').addEventListener('click', () => {
             document.getElementById('news-panel').classList.remove('active');
-            this.controls.enableDamping = true; this.controls.autoRotate = true;
+            this.controls.enableDamping = true;
+            this.controls.autoRotate = this.userPrefersRotation;
         });
         this.clock = new THREE.Clock();
     }
@@ -449,13 +478,7 @@ class GlobeApp {
         if (country.id !== "Home") this.showNews(country);
     }
 
-    initCelestialBodies() {
-        const sunGeom = new THREE.SphereGeometry(0.5, 32, 32);
-        this.sunMesh = new THREE.Mesh(sunGeom, new THREE.MeshBasicMaterial({ color: 0xFFFF00 }));
-        this.scene.add(this.sunMesh);
-        this.moonMesh = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x222222 }));
-        this.scene.add(this.moonMesh);
-    }
+
 
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -478,7 +501,8 @@ class GlobeApp {
             this.flyToCountry(COUNTRIES[intersects[0].instanceId]);
         } else if (!event.target.closest('#ui-overlay')) {
             document.getElementById('news-panel').classList.remove('active');
-            this.controls.enableDamping = true; this.controls.autoRotate = true;
+            this.controls.enableDamping = true;
+            this.controls.autoRotate = this.userPrefersRotation;
             this.selectedCountry = null;
         }
     }
@@ -490,13 +514,13 @@ class GlobeApp {
         const content = document.getElementById('news-content');
         this.controls.enableDamping = false; this.controls.autoRotate = false;
         panel.classList.add('active');
-        content.innerHTML = `<h2>${country.id} HUD</h2><p>Scanning atmospheric data...</p>`;
+        content.innerHTML = `<h2>${country.id} Intelligence</h2><p>Scanning atmospheric data...</p>`;
 
         const [news, weather] = await Promise.all([fetchNews(RSS_FEEDS[country.id] || RSS_FEEDS['Global']), fetchWeather(country.lat, country.lon)]);
 
         this.targetCloudDensity = weather.clouds / 100;
         this.targetWindSpeed = weather.wind;
-        content.innerHTML = `<h2>${country.id} INTELLIGENCE</h2><div id='news-list'></div>`;
+        content.innerHTML = `<h2>${country.capital}, ${country.id}</h2><div id='news-list'></div>`;
         const list = document.getElementById('news-list');
         news.forEach((item, i) => {
             const el = document.createElement('a'); el.className = 'news-item';
@@ -531,8 +555,6 @@ class GlobeApp {
         this.sunDirection.set(Math.cos(declination) * Math.sin(sunLon), Math.sin(declination), Math.cos(declination) * Math.cos(sunLon)).normalize();
 
         if (this.globeMaterial) this.globeMaterial.uniforms.uSunDirection.value.copy(this.sunDirection);
-        if (this.sunMesh) this.sunMesh.position.copy(this.sunDirection).multiplyScalar(100);
-        if (this.moonMesh) this.moonMesh.position.set(Math.cos(shaderTime) * 30, Math.sin(shaderTime * 0.5) * 10, Math.sin(shaderTime) * 30);
         if (this.cloudMesh) this.cloudMesh.rotation.y += delta * 0.05 + 0.00005;
 
         // Smooth Cloud & Wind Transition

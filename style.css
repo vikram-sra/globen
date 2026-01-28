@@ -297,3 +297,54 @@ body {
         transform: rotate(360deg);
     }
 }
+
+#controls {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: auto;
+    z-index: 100;
+}
+
+.control-btn {
+    background: rgba(10, 20, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--accent-color);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    backdrop-filter: blur(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
+.control-btn:hover {
+    background: rgba(15, 30, 45, 0.8);
+    border-color: rgba(0, 242, 255, 0.3);
+}
+
+.control-btn.active {
+    border-color: var(--accent-color);
+    background: rgba(0, 242, 255, 0.1);
+    box-shadow: 0 0 15px rgba(0, 242, 255, 0.15);
+}
+
+@media (max-width: 768px) {
+    #controls {
+        top: 1rem;
+        right: 1.5rem;
+    }
+
+    #time-display {
+        bottom: 1rem;
+        right: 1.5rem;
+        font-size: 0.6rem;
+    }
+}
