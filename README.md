@@ -10,11 +10,11 @@
     -   **Dynamic Lighting**: Real-time sun position calculated based on UTC time, axial tilt, and day-of-year.
     -   **Custom Shaders**: Custom WebGL shaders for atmospheric scattering (sunset glow), fresnel halos, and specular ocean reflections.
     -   **Cloud Layer**: Parallel-processing cloud layer with independent orbital rotation.
--   **Clean Architecture**: Modularized CSS for better maintainability, with inlined JS logic to ensure maximum portability and local `file://` protocol compatibility.
+-   **Clean Architecture**: Modularized CSS and JS logic (`main.js`) for better maintainability and concern separation.
 
 ## Usage
 
-Simply open `index.html` in any modern web browser. No local server or build step required.
+Simply open `index.html` in any modern web browser or serve it locally.
 
 -   **Rotate**: Drag (Mouse/Touch).
 -   **Select**: Click/Tap a country marker or use the **Country Dock** on the left.
