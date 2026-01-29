@@ -55,33 +55,66 @@ body {
 #country-dock {
     position: absolute;
     left: 1.5rem;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     z-index: 50;
-    max-height: 90vh;
-    padding: 10px;
+    max-height: calc(100vh - 5rem);
+    padding: 0 10px 20px 10px;
     pointer-events: auto;
     overflow-y: auto;
     scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+    padding-top: 55px;
+    /* Clear search box */
 }
+
+#country-search {
+    position: absolute;
+    left: 1.5rem;
+    top: 1.5rem;
+    width: 60px;
+    /* Starts small like icons */
+    background: rgba(10, 20, 30, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: var(--accent-color);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    pointer-events: auto;
+    z-index: 60;
+    backdrop-filter: blur(15px);
+    outline: none;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+#country-search:focus,
+#country-search:hover {
+    width: 180px;
+    background: rgba(0, 242, 255, 0.15);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 25px rgba(0, 242, 255, 0.2);
+}
+
 
 #country-dock::-webkit-scrollbar {
     display: none;
 }
 
 .country-btn {
-    width: 54px;
-    height: 48px;
+    width: 32px;
+    height: 28px;
     background: rgba(10, 20, 30, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: 4px;
     color: var(--accent-color);
     font-family: var(--font-mono);
     font-weight: 800;
-    font-size: 0.75rem;
+    font-size: 0.55rem;
     display: flex;
     align-items: center;
     backdrop-filter: blur(15px);
@@ -91,39 +124,40 @@ body {
     user-select: none;
     overflow: hidden;
     position: relative;
+    flex-shrink: 0;
 }
 
 .country-btn span:first-child {
-    min-width: 54px;
+    min-width: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .country-btn.home-btn {
     background: rgba(0, 242, 255, 0.12);
     border-color: rgba(0, 242, 255, 0.3);
-    margin-bottom: 0.6rem;
-    font-size: 1.3rem;
-    height: 54px;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+    height: 32px;
 }
 
 .country-btn .label {
     opacity: 0;
-    transform: translateX(-15px);
+    transform: translateX(-10px);
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    font-size: 0.7rem;
-    letter-spacing: 2px;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
     font-weight: 700;
     color: #fff;
-    padding-right: 20px;
+    padding-right: 15px;
     white-space: nowrap;
 }
 
 .country-btn:hover {
-    width: 180px;
+    width: 150px;
     background: rgba(0, 242, 255, 0.15);
     border-color: var(--accent-color);
     box-shadow: 0 0 25px rgba(0, 242, 255, 0.2);
@@ -219,6 +253,16 @@ body {
     font-family: var(--font-mono);
     border-bottom: 1px solid rgba(0, 242, 255, 0.1);
     padding-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#news-panel h2 img {
+    height: 16px;
+    width: auto;
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .news-item {

@@ -1,43 +1,46 @@
 # GlobeN 🌍
 
-**GlobeN** (Global News) is a futuristic, 3D news visualization tool. It maps live RSS feeds from major nations onto an interactive, scientifically accurate Earth simulation.
+**GlobeN** (Global News) is a futuristic, cinematic 3D news visualization platform. It maps real-time global intelligence and atmospheric data onto a high-fidelity, scientifically accurate Earth simulation.
 
-## Key Features
+## 🚀 Key Features
 
--   **Cinematic Camera Navigation**: Implements advanced spherical interpolation for smooth, orbiting transitions between capitals. The camera automatically calculates the shortest longitudinal path and uses custom easing for a premium feel.
--   **Capital City Mapping**: Strategic markers are positioned at precise capital city coordinates (e.g., Washington D.C., London, Tokyo) for accurate geographical context.
--   **Live News HUD**: Real-time RSS integration with **dynamic weather icons** (☀️, 🌧️) and local data (temperature, wind speed) displayed in a futuristic overlay.
--   **Performance Optimized**: 
-    -   Removed heavy starfield point clouds to reduce draw calls.
-    -   Minimalist visual footprint with hidden celestial bodies to focus on Earth data.
-    -   **Auto-Rotate Toggle**: User-controlled rotation to save CPU/GPU overhead.
+-   **Cinematic Camera Navigation**: Advanced spherical interpolation (Slerp) and custom quad-easing for smooth, professional-grade transitions between nations.
+-   **Expanded Global Intel**: Strategic markers and live feeds for over **40+ countries**, with accurate capital city mapping and high-definition national flags (FlagCDN integration).
+-   **24-Hour Live News Engine**: 
+    -   Real-time aggregation from 60+ high-authority global RSS sources.
+    -   Intelligent filtering for a rolling **24-48 hour window** to ensure maximum relevancy.
+    -   Deep data deduplication and chronological sorting for a clean, long-form news stream.
+-   **Futuristic HUD (Heads-Up Display)**:
+    -   **Dynamic Weather Sync**: Real-time temperature, cloud cover, and wind speed data (Open-Meteo API).
+    -   **Interactive Tether**: A dynamic SVG bezier curve "tethers" the 3D globe selection directly to the news panel.
+    -   **Compact Search**: Expandable search interface for rapid nation lookup.
 -   **Scientific Earth Simulation**:
-    -   **Dynamic Lighting**: Real-time sun position calculated based on UTC time, axial tilt, and day-of-year.
-    -   **Custom Shaders**: Custom WebGL shaders for atmospheric sunset glow, fresnel halos, and specular reflections.
-    -   **Cloud Layer**: Dynamic cloud swirl driven by real-time local wind speed data.
--   **Clean Architecture**: Modularized CSS and JS logic (`main.js`) for better maintainability and concern separation.
+    -   **Dynamic Solar Tracking**: Real-time sun position calculated via axial tilt and UTC time.
+    -   **Advanced WebGL Shaders**: Custom atmospheric scattering (Sunset/Day split), Fresnel halos, and specular night-light mapping.
+    -   **Reactive Clouds**: Cloud rotation speed and density are driven by local wind data from the selected region.
+-   **Performance-First Design**: 
+    -   Optimized draw calls with sprite-based markers and minimalist vector borders (TopoJSON).
+    -   Compact, minimalist sidebar with isolated scrolling to prevent 3D gimbal lock.
 
-## Usage
+## 🛠 Usage
 
-You can run the application using Python's built-in HTTP server:
+1. Start the local development server:
+   ```bash
+   python3 -m http.server 8000
+   ```
+2. Navigate to `http://localhost:8000`.
 
-```bash
-python3 -m http.server 8000
-```
+### Controls
+-   **Explore**: Drag to rotate, Scroll to zoom.
+-   **Select**: Click/Tap a marker or use the **Compact Dock** (Left Sidebar).
+-   **Search**: Hover the top-left search icon to expand and filter nations.
 
-Then open `http://localhost:8000` in any modern web browser.
+## 🧬 Tech Stack
 
--   **Rotate**: Drag (Mouse/Touch).
--   **Select**: Click/Tap a country marker or use the **Country Dock** on the left.
--   **Interact**: Click headlines in the HUD panel to open the full news source.
+-   **Three.js**: Core WebGL rendering logic.
+-   **OrbitControls**: Customized for seamless transition blending.
+-   **TopoJSON**: High-efficiency geographical boundary data.
+-   **Vanilla JS/CSS**: Zero-dependency, high-performance implementation.
 
-## Tech Stack
-
--   **Three.js**: WebGL rendering engine.
--   **OrbitControls**: Enhanced for seamless transition blending.
--   **TopoJSON**: Efficient country border vector data.
--   **Vanilla JS/CSS**: High-performance, zero-dependency implementation.
-
-## License
-
+## 📄 License
 MIT

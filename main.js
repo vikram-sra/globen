@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+// Removed ThreeGlobe import to fix version conflicts and restore custom shaders
 
 // --- Configuration ---
 const GLOBE_RADIUS = 5;
@@ -119,56 +120,96 @@ const cloudFragmentShader = `
 `;
 
 // --- Data ---
+// --- Data ---
 const COUNTRIES = [
-    { id: "Argentina", capital: "Buenos Aires", code: "ARG", lat: -34.6037, lon: -58.3816 },
-    { id: "Australia", capital: "Canberra", code: "AUS", lat: -35.2809, lon: 149.1300 },
-    { id: "Brazil", capital: "Brasília", code: "BRA", lat: -15.8267, lon: -47.9218 },
-    { id: "Canada", capital: "Ottawa", code: "CAN", lat: 45.4215, lon: -75.6972 },
-    { id: "China", capital: "Beijing", code: "CHN", lat: 39.9042, lon: 116.4074 },
-    { id: "Egypt", capital: "Cairo", code: "EGY", lat: 30.0444, lon: 31.2357 },
-    { id: "France", capital: "Paris", code: "FRA", lat: 48.8566, lon: 2.3522 },
-    { id: "Germany", capital: "Berlin", code: "DEU", lat: 52.5200, lon: 13.4050 },
-    { id: "India", capital: "New Delhi", code: "IND", lat: 28.6139, lon: 77.2090 },
-    { id: "Indonesia", capital: "Jakarta", code: "IDN", lat: -6.2088, lon: 106.8456 },
-    { id: "Italy", capital: "Rome", code: "ITA", lat: 41.9028, lon: 12.4964 },
-    { id: "Japan", capital: "Tokyo", code: "JPN", lat: 35.6762, lon: 139.6503 },
-    { id: "Mexico", capital: "Mexico City", code: "MEX", lat: 19.4326, lon: -99.1332 },
-    { id: "Nigeria", capital: "Abuja", code: "NGA", lat: 9.0765, lon: 7.3986 },
-    { id: "Russia", capital: "Moscow", code: "RUS", lat: 55.7558, lon: 37.6173 },
-    { id: "Saudi Arabia", capital: "Riyadh", code: "SAU", lat: 24.7136, lon: 46.6753 },
-    { id: "South Africa", capital: "Pretoria", code: "ZAF", lat: -25.7479, lon: 28.2293 },
-    { id: "South Korea", capital: "Seoul", code: "KOR", lat: 37.5665, lon: 126.9780 },
-    { id: "Spain", capital: "Madrid", code: "ESP", lat: 40.4168, lon: -3.7038 },
-    { id: "Turkey", capital: "Ankara", code: "TUR", lat: 39.9334, lon: 32.8597 },
-    { id: "United Kingdom", capital: "London", code: "GBR", lat: 51.5074, lon: -0.1278 },
-    { id: "United States", capital: "Washington D.C.", code: "USA", lat: 38.9072, lon: -77.0369 }
+    { id: "Argentina", capital: "Buenos Aires", code: "AR", lat: -34.6037, lon: -58.3816 },
+    { id: "Australia", capital: "Canberra", code: "AU", lat: -35.2809, lon: 149.1300 },
+    { id: "Brazil", capital: "Brasília", code: "BR", lat: -15.8267, lon: -47.9218 },
+    { id: "Canada", capital: "Ottawa", code: "CA", lat: 45.4215, lon: -75.6972 },
+    { id: "Chile", capital: "Santiago", code: "CL", lat: -33.4489, lon: -70.6693 },
+    { id: "China", capital: "Beijing", code: "CN", lat: 39.9042, lon: 116.4074 },
+    { id: "Colombia", capital: "Bogotá", code: "CO", lat: 4.7110, lon: -74.0721 },
+    { id: "Egypt", capital: "Cairo", code: "EG", lat: 30.0444, lon: 31.2357 },
+    { id: "Ethiopia", capital: "Addis Ababa", code: "ET", lat: 9.0306, lon: 38.7469 },
+    { id: "France", capital: "Paris", code: "FR", lat: 48.8566, lon: 2.3522 },
+    { id: "Germany", capital: "Berlin", code: "DE", lat: 52.5200, lon: 13.4050 },
+    { id: "Greece", capital: "Athens", code: "GR", lat: 37.9838, lon: 23.7275 },
+    { id: "India", capital: "New Delhi", code: "IN", lat: 28.6139, lon: 77.2090 },
+    { id: "Indonesia", capital: "Jakarta", code: "ID", lat: -6.2088, lon: 106.8456 },
+    { id: "Israel", capital: "Jerusalem", code: "IL", lat: 31.7683, lon: 35.2137 },
+    { id: "Italy", capital: "Rome", code: "IT", lat: 41.9028, lon: 12.4964 },
+    { id: "Japan", capital: "Tokyo", code: "JP", lat: 35.6762, lon: 139.6503 },
+    { id: "Kenya", capital: "Nairobi", code: "KE", lat: -1.2921, lon: 36.8219 },
+    { id: "Malaysia", capital: "Kuala Lumpur", code: "MY", lat: 3.1390, lon: 101.6869 },
+    { id: "Mexico", capital: "Mexico City", code: "MX", lat: 19.4326, lon: -99.1332 },
+    { id: "Netherlands", capital: "Amsterdam", code: "NL", lat: 52.3676, lon: 4.9041 },
+    { id: "New Zealand", capital: "Wellington", code: "NZ", lat: -41.2865, lon: 174.7762 },
+    { id: "Nigeria", capital: "Abuja", code: "NG", lat: 9.0765, lon: 7.3986 },
+    { id: "Norway", capital: "Oslo", code: "NO", lat: 59.9139, lon: 10.7522 },
+    { id: "Pakistan", capital: "Islamabad", code: "PK", lat: 33.6844, lon: 73.0479 },
+    { id: "Peru", capital: "Lima", code: "PE", lat: -12.0464, lon: -77.0428 },
+    { id: "Philippines", capital: "Manila", code: "PH", lat: 14.5995, lon: 120.9842 },
+    { id: "Poland", capital: "Warsaw", code: "PL", lat: 52.2297, lon: 21.0122 },
+    { id: "Portugal", capital: "Lisbon", code: "PT", lat: 38.7223, lon: -9.1393 },
+    { id: "Russia", capital: "Moscow", code: "RU", lat: 55.7558, lon: 37.6173 },
+    { id: "Saudi Arabia", capital: "Riyadh", code: "SA", lat: 24.7136, lon: 46.6753 },
+    { id: "Singapore", capital: "Singapore", code: "SG", lat: 1.3521, lon: 103.8198 },
+    { id: "South Africa", capital: "Pretoria", code: "ZA", lat: -25.7479, lon: 28.2293 },
+    { id: "South Korea", capital: "Seoul", code: "KR", lat: 37.5665, lon: 126.9780 },
+    { id: "Spain", capital: "Madrid", code: "ES", lat: 40.4168, lon: -3.7038 },
+    { id: "Sweden", capital: "Stockholm", code: "SE", lat: 59.3293, lon: 18.0686 },
+    { id: "Switzerland", capital: "Bern", code: "CH", lat: 46.9480, lon: 7.4474 },
+    { id: "Thailand", capital: "Bangkok", code: "TH", lat: 13.7563, lon: 100.5018 },
+    { id: "Turkey", capital: "Ankara", code: "TR", lat: 39.9334, lon: 32.8597 },
+    { id: "Ukraine", capital: "Kyiv", code: "UA", lat: 50.4501, lon: 30.5234 },
+    { id: "United Kingdom", capital: "London", code: "GB", lat: 51.5074, lon: -0.1278 },
+    { id: "United States", capital: "Washington D.C.", code: "US", lat: 38.9072, lon: -77.0369 },
+    { id: "Vietnam", capital: "Hanoi", code: "VN", lat: 21.0285, lon: 105.8542 }
 ].sort((a, b) => a.id.localeCompare(b.id));
 
+const GENERIC_FEEDS = [
+    'https://feeds.bbci.co.uk/news/world/rss.xml',
+    'https://www.reutersagency.com/feed/?best-sectors=world-news&post_type=best',
+    'https://www.aljazeera.com/xml/rss/all.xml'
+];
+
 const RSS_FEEDS = {
-    "Argentina": 'https://www.mercopress.com/rss',
-    "Australia": 'https://www.abc.net.au/news/feed/51120/rss.xml',
-    "Brazil": 'https://www.brazilsvr.com/rss.xml',
-    "Canada": 'https://www.cbc.ca/cmlink/rss-topstories',
-    "China": 'http://www.chinadaily.com.cn/rss/china_rss.xml',
-    "Egypt": 'https://dailynewsegypt.com/feed/',
-    "France": 'https://www.france24.com/en/rss',
-    "Germany": 'https://www.spiegel.de/international/index.rss',
-    "India": 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms',
-    "Indonesia": 'https://www.thejakartapost.com/rss/latest',
-    "Italy": 'https://www.ansa.it/sitoweb/export/ansareuters_en.xml',
-    "Japan": 'https://www3.nhk.or.jp/rss/news/cat0.xml',
-    "Mexico": 'https://mexiconewsdaily.com/feed/',
-    "Nigeria": 'https://guardian.ng/feed/',
-    "Russia": 'https://tass.com/rss',
-    "Saudi Arabia": 'https://www.arabnews.com/cat/1/rss.xml',
-    "South Africa": 'https://www.news24.com/news24/rss',
-    "South Korea": 'http://www.koreaherald.com/common/rss_xml.php?ct=101',
-    "Spain": 'https://elpais.com/rss/elpais/inenglish.xml',
-    "Turkey": 'https://www.hurriyetdailynews.com/rss.aspx',
-    "United Kingdom": 'http://feeds.bbci.co.uk/news/uk/rss.xml',
-    "United States": 'http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml',
-    "Global": 'http://feeds.bbci.co.uk/news/world/rss.xml'
+    "AR": ['https://www.mercopress.com/rss'],
+    "AU": ['https://www.abc.net.au/news/feed/51120/rss.xml', 'https://www.smh.com.au/rss/feed.xml'],
+    "BR": ['https://www.brazilsvr.com/rss.xml', 'https://riotimesonline.com/feed/'],
+    "CA": ['https://www.cbc.ca/cmlink/rss-topstories', 'https://www.thestar.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc'],
+    "CN": ['http://www.chinadaily.com.cn/rss/china_rss.xml', 'https://www.scmp.com/rss/91/feed'],
+    "EG": ['https://dailynewsegypt.com/feed/', 'https://www.egyptindependent.com/feed/'],
+    "FR": ['https://www.france24.com/en/rss', 'https://www.lemonde.fr/en/rss/une.xml'],
+    "DE": ['https://www.spiegel.de/international/index.rss', 'https://www.dw.com/en/top-stories/s-9097/rss'],
+    "IN": ['https://timesofindia.indiatimes.com/rssfeedstopstories.cms', 'https://www.thehindu.com/news/national/feeder/default.rss'],
+    "ID": ['https://www.thejakartapost.com/rss/latest'],
+    "IT": ['https://www.ansa.it/sitoweb/export/ansareuters_en.xml', 'https://www.wantedinrome.com/feed'],
+    "JP": ['https://www3.nhk.or.jp/rss/news/cat0.xml', 'https://www.japantimes.co.jp/feed'],
+    "MX": ['https://mexiconewsdaily.com/feed/', 'https://elpais.com/mexico/rss/'],
+    "NG": ['https://guardian.ng/feed/', 'https://vanguardngr.com/feed/'],
+    "RU": ['https://tass.com/rss', 'https://www.themoscowtimes.com/rss/news'],
+    "SA": ['https://www.arabnews.com/cat/1/rss.xml', 'https://www.saudigazette.com.sa/rss'],
+    "ZA": ['https://www.news24.com/news24/rss', 'https://www.dailymaverick.co.za/feed/'],
+    "KR": ['http://www.koreaherald.com/common/rss_xml.php?ct=101', 'https://www.koreatimes.co.kr/www/rss/rss.xml'],
+    "ES": ['https://elpais.com/rss/elpais/inenglish.xml', 'https://www.thelocal.es/feed'],
+    "TR": ['https://www.hurriyetdailynews.com/rss.aspx', 'https://www.dailysabah.com/rss'],
+    "GB": ['http://feeds.bbci.co.uk/news/uk/rss.xml', 'https://www.theguardian.com/uk/rss'],
+    "US": ['http://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml', 'https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml'],
+    "UA": ['https://www.ukrinform.net/rss/news', 'https://kyivindependent.com/feed/'],
+    "IL": ['https://www.haaretz.com/cmlink/1.4659220', 'https://www.jpost.com/rss'],
+    "VN": ['https://vietnamnews.vn/rss/latest-news.xml'],
+    "TH": ['https://www.bangkokpost.com/rss/data/topstories.xml'],
+    "MY": ['https://www.thestar.com.my/rss/news/nation'],
+    "PH": ['https://www.philstar.com/rss/headlines'],
+    "SG": ['https://www.straitstimes.com/news/world/rss.xml'],
+    "SE": ['https://www.thelocal.se/feed'],
+    "NO": ['https://www.thelocal.no/feed'],
+    "NL": ['https://nltimes.nl/rss.xml'],
+    "CH": ['https://www.swissinfo.ch/eng/rss']
 };
+
+// Removed static RSS_FEEDS map in favor of code-based lookup
 
 // --- Helpers ---
 function latLongToVector3(lat, lon, radius) {
@@ -178,6 +219,12 @@ function latLongToVector3(lat, lon, radius) {
     const y = radius * Math.cos(phi);
     const z = radius * Math.sin(phi) * Math.sin(theta);
     return new THREE.Vector3(x, y, z);
+}
+
+function getPolygonCentroid(pts) {
+    let lat = 0, lon = 0;
+    pts.forEach(p => { lat += p[1]; lon += p[0]; });
+    return { lat: lat / pts.length, lon: lon / pts.length };
 }
 
 async function fetchWeather(lat, lon) {
@@ -197,21 +244,54 @@ async function fetchWeather(lat, lon) {
     }
 }
 
-async function fetchNews(rssUrl) {
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-    try {
+async function fetchNews(rssUrls) {
+    const urls = Array.isArray(rssUrls) ? rssUrls : [rssUrls];
+    const now = Date.now();
+    const window24h = 24 * 60 * 60 * 1000;
+
+    const fetchWithRetry = async (url) => {
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`;
         const res = await fetch(apiUrl);
         const data = await res.json();
-        if (data.status === 'ok') {
-            return data.items.map(item => ({
-                title: item.title,
-                link: item.link,
-                time: new Date(item.pubDate || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                source: data.feed.title.split(' ')[0],
-                tag: 'LIVE'
-            }));
-        }
-        throw new Error();
+        if (data.status !== 'ok') throw new Error();
+        return data.items.map(item => ({
+            title: item.title,
+            link: item.link,
+            pubDate: new Date(item.pubDate).getTime(),
+            time: new Date(item.pubDate || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            source: data.feed.title.split(' ')[0],
+            tag: 'LIVE'
+        }));
+    };
+
+    try {
+        const results = await Promise.allSettled(urls.map(fetchWithRetry));
+        let allNews = results
+            .filter(r => r.status === 'fulfilled')
+            .flatMap(r => r.value);
+
+        // Filter for last 48h for better data density, fallback to latest news if empty
+        const window48h = 48 * 60 * 60 * 1000;
+        let filteredNews = allNews.filter(item => (now - item.pubDate) < window48h);
+
+        // If 48h is empty, just use the latest available news
+        if (filteredNews.length === 0) filteredNews = allNews;
+
+        allNews = filteredNews;
+
+        // Deduplicate by title
+        const seen = new Set();
+        allNews = allNews.filter(item => {
+            const isDuplicate = seen.has(item.title);
+            seen.add(item.title);
+            return !isDuplicate;
+        });
+
+        // Sort by date newest first
+        allNews.sort((a, b) => b.pubDate - a.pubDate);
+
+        if (allNews.length === 0) throw new Error();
+        return allNews; // Return everything from last 24h (long list)
     } catch (e) {
         return [
             { title: 'Data Feed Synchronized', link: '#', time: 'NOW', source: 'SYS', tag: 'STAT' },
@@ -270,14 +350,53 @@ class GlobeApp {
             this.updateGlobeMaterials();
             this.initBorders();
             this.initClouds();
+            this.initMarkers();
+            this.initCountryDock();
+            this.initSearch();
         });
 
         this.initControls();
-        this.initCountryDock();
         this.initRotationToggle();
+        this.clock = new THREE.Clock();
         this.animate();
         this.hideLoader();
     }
+
+    // Removed parseCountries as we are using the static COUNTRIES list
+    // parseCountries() {
+    //     if (!this.assets?.topo) return;
+    //     try {
+    //         const features = topojson.feature(this.assets.topo, this.assets.topo.objects.countries).features;
+
+    //         COUNTRIES = features.map(f => {
+    //             const name = f.properties.name || "Unknown";
+    //             const code = f.id || name.substring(0, 3).toUpperCase();
+
+    //             let pts = [];
+    //             if (f.geometry.type === 'Polygon') {
+    //                 pts = f.geometry.coordinates[0];
+    //             } else if (f.geometry.type === 'MultiPolygon') {
+    //                 pts = f.geometry.coordinates.flatMap(poly => poly[0]);
+    //             }
+
+    //             if (!pts || pts.length === 0) return null;
+    //             const centroid = getPolygonCentroid(pts);
+
+    //             return {
+    //                 id: name,
+    //                 code: String(code),
+    //                 lat: centroid.lat,
+    //                 lon: centroid.lon
+    //             };
+    //         }).filter(c => c && !isNaN(c.lat) && !isNaN(c.lon) && c.id !== "Antarctica")
+    //             .sort((a, b) => a.id.localeCompare(b.id));
+
+    //         this.initMarkers();
+    //         this.initCountryDock();
+    //     } catch (e) {
+    //         console.error("Error parsing countries:", e);
+    //     }
+    // }
 
     initScene() {
         this.scene = new THREE.Scene();
@@ -368,33 +487,41 @@ class GlobeApp {
         this.scene.add(this.cloudMesh);
     }
 
+    createGlowTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64; canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.2, 'rgba(0, 242, 255, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(0, 242, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(0, 242, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(canvas);
+    }
+
     initMarkers() {
-        // Minimalist but visible dots
-        const geom = new THREE.CircleGeometry(0.1, 16);
-        const visualMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff, side: THREE.DoubleSide });
-        // Invisible but raycastable
-        const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide });
+        if (this.markerGroup) this.scene.remove(this.markerGroup);
+        this.markerGroup = new THREE.Group();
+        this.markers = [];
+        this.markerTexture = this.createGlowTexture();
+        const material = new THREE.SpriteMaterial({ map: this.markerTexture, transparent: true, blending: THREE.AdditiveBlending });
 
-        this.markerVisuals = new THREE.InstancedMesh(geom, visualMat, COUNTRIES.length);
-        this.markerHitbox = new THREE.InstancedMesh(geom, hitMat, COUNTRIES.length);
-
-        this.markerVisuals.rotation.y = -Math.PI / 2;
-        this.markerHitbox.rotation.y = -Math.PI / 2;
-
-        const dummy = new THREE.Object3D();
         COUNTRIES.forEach((c, i) => {
-            // Position
             const pos = latLongToVector3(c.lat, c.lon, MARKER_RADIUS);
+            // Apply globe rotation offset to match the mesh rotation
+            pos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
 
-            // Instanced Mesh Matrix
-            dummy.position.copy(pos);
-            dummy.lookAt(0, 0, 0);
-            dummy.updateMatrix();
-            this.markerVisuals.setMatrixAt(i, dummy.matrix);
-            this.markerHitbox.setMatrixAt(i, dummy.matrix);
+            const sprite = new THREE.Sprite(material);
+            sprite.position.copy(pos);
+            sprite.scale.set(0.15, 0.15, 1);
+            sprite.userData = { country: c, baseScale: 0.15 };
+            this.markerGroup.add(sprite);
+            this.markers.push(sprite);
         });
 
-        this.scene.add(this.markerVisuals, this.markerHitbox);
+        this.scene.add(this.markerGroup);
     }
 
 
@@ -440,12 +567,31 @@ class GlobeApp {
             this.controls.enableDamping = true;
             this.controls.autoRotate = this.userPrefersRotation;
         });
-        this.clock = new THREE.Clock();
+
+        // Prevent UI scrolling from zooming the globe
+        const blockScroll = (e) => e.stopPropagation();
+        document.getElementById('country-dock').addEventListener('wheel', blockScroll, { passive: false });
+        document.getElementById('news-panel').addEventListener('wheel', blockScroll, { passive: false });
+    }
+
+    initSearch() {
+        const searchInput = document.getElementById('country-search');
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const btns = document.querySelectorAll('.country-btn:not(.home-btn)');
+            btns.forEach(btn => {
+                const text = btn.querySelector('.label').textContent.toLowerCase();
+                btn.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        });
     }
 
     initCountryDock() {
         const dock = document.getElementById('country-dock');
         if (!dock) return;
+        dock.innerHTML = ''; // Clear existing
 
         // Add Home Node
         const homeNode = document.createElement('div');
@@ -460,7 +606,8 @@ class GlobeApp {
         COUNTRIES.forEach(country => {
             const btn = document.createElement('div');
             btn.className = 'country-btn';
-            btn.innerHTML = `<span>${country.code}</span><span class="label">${country.id}</span>`;
+            const displayCode = String(country.code || '???').substring(0, 3);
+            btn.innerHTML = `<span>${displayCode}</span><span class="label">${country.id}</span>`;
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.flyToCountry(country);
@@ -512,10 +659,12 @@ class GlobeApp {
         this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObject(this.markerHitbox);
+
+        // Raycast against sprite markers
+        const intersects = this.raycaster.intersectObjects(this.markers);
 
         if (intersects.length > 0) {
-            this.flyToCountry(COUNTRIES[intersects[0].instanceId]);
+            this.flyToCountry(intersects[0].object.userData.country);
         } else if (!event.target.closest('#ui-overlay')) {
             document.getElementById('news-panel').classList.remove('active');
             this.controls.enableDamping = true;
@@ -528,21 +677,37 @@ class GlobeApp {
 
     async showNews(country) {
         this.selectedCountry = country;
-        this.selectedPosition.copy(latLongToVector3(country.lat, country.lon, MARKER_RADIUS));
+        const pos = latLongToVector3(country.lat, country.lon, MARKER_RADIUS);
+        this.selectedPosition.copy(pos);
         const panel = document.getElementById('news-panel');
         const content = document.getElementById('news-content');
         this.controls.enableDamping = false; this.controls.autoRotate = false;
         panel.classList.add('active');
-        content.innerHTML = `<h2>${country.id} Intelligence</h2><p>Scanning atmospheric data...</p>`;
+        content.innerHTML = `<h2>${country.id}</h2><p>Scanning atmospheric data...</p>`;
 
-        const [news, weather] = await Promise.all([fetchNews(RSS_FEEDS[country.id] || RSS_FEEDS['Global']), fetchWeather(country.lat, country.lon)]);
+        // Aggregate feeds: specific + generics
+        const code = String(country.code).toUpperCase();
+        const specificFeeds = RSS_FEEDS[code] || [];
+        const allFeeds = [...specificFeeds, ...GENERIC_FEEDS];
+
+        const [news, weather] = await Promise.all([
+            fetchNews(allFeeds),
+            fetchWeather(country.lat, country.lon)
+        ]);
 
         this.targetCloudDensity = weather.clouds / 100;
         this.targetWindSpeed = weather.wind;
 
         const weatherIcon = getWeatherEmoji(weather.code);
+        const flagUrl = `https://flagcdn.com/w80/${code.toLowerCase()}.png`;
 
-        content.innerHTML = `<h2>${country.capital}, ${country.id}</h2><div id='news-list'></div>`;
+        content.innerHTML = `
+            <h2>
+                <img src="${flagUrl}" alt="${country.id} Flag" onerror="this.onerror=null; this.src='https://flagcdn.com/w80/un.png'">
+                ${country.capital}, ${country.id}
+            </h2>
+            <div id='news-list'></div>`;
+
         const list = document.getElementById('news-list');
         news.forEach((item, i) => {
             const el = document.createElement('a'); el.className = 'news-item';
@@ -570,11 +735,23 @@ class GlobeApp {
         const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600;
         const startDay = new Date(now.getUTCFullYear(), 0, 0);
         const dayOfYear = Math.floor((now - startDay) / (1000 * 60 * 60 * 24));
-        const shaderTime = Date.now() * 0.0005;
+        const timeValue = Date.now() * 0.001;
 
         const sunLon = -((utcHours - 12.0) / 24.0) * (Math.PI * 2.0);
         const declination = 23.44 * (Math.PI / 180) * Math.sin((dayOfYear - 81) * (2.0 * Math.PI / 365.25));
         this.sunDirection.set(Math.cos(declination) * Math.sin(sunLon), Math.sin(declination), Math.cos(declination) * Math.cos(sunLon)).normalize();
+
+        // Pulsing Markers
+        if (this.markers) {
+            this.markers.forEach(sprite => {
+                const pulse = 1 + Math.sin(timeValue * 3) * 0.15;
+                sprite.scale.set(
+                    sprite.userData.baseScale * pulse,
+                    sprite.userData.baseScale * pulse,
+                    1
+                );
+            });
+        }
 
         if (this.globeMaterial) this.globeMaterial.uniforms.uSunDirection.value.copy(this.sunDirection);
         if (this.cloudMesh) this.cloudMesh.rotation.y += delta * 0.05 + 0.00005;
@@ -585,7 +762,6 @@ class GlobeApp {
 
         if (this.cloudMaterial) {
             this.cloudMaterial.uniforms.uCloudDensity.value = this.currentCloudDensity;
-            // Drive cloud swirl speed with local wind speed
             this.shaderTime += delta * (0.2 + this.currentWindSpeed * 0.05);
             this.cloudMaterial.uniforms.uTime.value = this.shaderTime;
         }
@@ -594,17 +770,12 @@ class GlobeApp {
         if (this.isFlying) {
             const elapsed = performance.now() - this.flyStartTime;
             const t = Math.min(elapsed / this.flyDuration, 1);
-
-            // Quintic Out Easing for snap-to-finish smoothness
             const easedT = 1 - Math.pow(1 - t, 4);
 
-            // Interpolate Position
             this.currentSpherical.phi = THREE.MathUtils.lerp(this.startSpherical.phi, this.targetSpherical.phi, easedT);
             this.currentSpherical.theta = THREE.MathUtils.lerp(this.startSpherical.theta, this.targetSpherical.theta, easedT);
             this.currentSpherical.radius = THREE.MathUtils.lerp(this.startSpherical.radius, this.targetSpherical.radius, easedT);
             this.camera.position.setFromSpherical(this.currentSpherical);
-
-            // Stabilize look-at during flight
             this.camera.lookAt(0, 0, 0);
 
             if (t >= 1) {
@@ -613,7 +784,6 @@ class GlobeApp {
             }
         }
 
-        // UI Updates
         const timeDisplay = document.getElementById('time-display');
         if (timeDisplay) timeDisplay.textContent = now.toUTCString();
 
@@ -626,7 +796,9 @@ class GlobeApp {
         const tether = document.getElementById('tether-path');
         if (this.selectedCountry && panel.classList.contains('active')) {
             const pos = this.selectedPosition.clone();
+            // Apply globe rotation offset to match markers
             pos.applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2);
+
             const cameraToPoint = pos.clone().sub(this.camera.position).normalize();
             const dot = pos.clone().normalize().dot(cameraToPoint);
 
