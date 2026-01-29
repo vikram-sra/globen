@@ -220,6 +220,23 @@ async function fetchNews(rssUrl) {
     }
 }
 
+
+// --- Helpers ---
+function getWeatherEmoji(code) {
+    if (code === 0) return '☀️'; // Clear sky
+    if (code === 1 || code === 2 || code === 3) return '⛅'; // Mainly clear, partly cloudy, overcast
+    if (code === 45 || code === 48) return '🌫️'; // Fog
+    if (code >= 51 && code <= 55) return '🌦️'; // Drizzle
+    if (code >= 56 && code <= 57) return '🌧️'; // Freezing Drizzle
+    if (code >= 61 && code <= 65) return '🌧️'; // Rain
+    if (code >= 66 && code <= 67) return '🌨️'; // Freezing Rain
+    if (code >= 71 && code <= 77) return '❄️'; // Snow fall
+    if (code >= 80 && code <= 82) return '🌦️'; // Rain showers
+    if (code >= 85 && code <= 86) return '❄️'; // Snow showers
+    if (code >= 95 && code <= 99) return '⛈️'; // Thunderstorm
+    return '🌡️'; // Default
+}
+
 class GlobeApp {
     constructor() {
         this.container = document.getElementById('canvas-container');
@@ -507,6 +524,8 @@ class GlobeApp {
         }
     }
 
+
+
     async showNews(country) {
         this.selectedCountry = country;
         this.selectedPosition.copy(latLongToVector3(country.lat, country.lon, MARKER_RADIUS));
@@ -520,6 +539,9 @@ class GlobeApp {
 
         this.targetCloudDensity = weather.clouds / 100;
         this.targetWindSpeed = weather.wind;
+
+        const weatherIcon = getWeatherEmoji(weather.code);
+
         content.innerHTML = `<h2>${country.capital}, ${country.id}</h2><div id='news-list'></div>`;
         const list = document.getElementById('news-list');
         news.forEach((item, i) => {
@@ -528,7 +550,7 @@ class GlobeApp {
             el.innerHTML = `
                 <div class='meta'>
                     <span class='tag'>[${item.tag}]</span> ${item.source} • ${item.time}
-                    ${i === 0 ? `<span class="weather-tag">${weather.temp}°C | CLOUDS ${weather.clouds}% | WIND ${weather.wind}km/h</span>` : ''}
+                    ${i === 0 ? `<span class="weather-tag">${weatherIcon} ${weather.temp}°C | CLOUDS ${weather.clouds}% | WIND ${weather.wind}km/h</span>` : ''}
                 </div>
                 <div class='title'>${item.title}</div>`;
             list.appendChild(el);
