@@ -6,7 +6,7 @@
 
 -   **Cinematic Camera Navigation**: Implements advanced spherical interpolation for smooth, orbiting transitions between capitals. The camera automatically calculates the shortest longitudinal path and uses custom easing for a premium feel.
 -   **Capital City Mapping**: Strategic markers are positioned at precise capital city coordinates (e.g., Washington D.C., London, Tokyo) for accurate geographical context.
--   **Live News HUD**: Real-time RSS integration and local weather data (temperature, wind speed, cloud cover) displayed in a futuristic overlay.
+-   **Live News HUD**: Real-time RSS integration with **dynamic weather icons** (☀️, 🌧️) and local data (temperature, wind speed) displayed in a futuristic overlay.
 -   **Performance Optimized**: 
     -   Removed heavy starfield point clouds to reduce draw calls.
     -   Minimalist visual footprint with hidden celestial bodies to focus on Earth data.
@@ -19,7 +19,13 @@
 
 ## Usage
 
-Simply open `index.html` in any modern web browser or serve it locally.
+You can run the application using Python's built-in HTTP server:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000` in any modern web browser.
 
 -   **Rotate**: Drag (Mouse/Touch).
 -   **Select**: Click/Tap a country marker or use the **Country Dock** on the left.
